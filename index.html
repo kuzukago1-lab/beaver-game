@@ -2025,6 +2025,24 @@
             }
         }
 
+        // 🔄 ページ読み込み時にクラウドからランキングを自動取得して表示に反映する
+        window.addEventListener("DOMContentLoaded", async () => {
+            try {
+                let ranking = await getCloudRanking();
+                let listHtml = "";
+                if (ranking.length === 0) {
+                    listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
+                } else {
+                    ranking.forEach((r, index) => {
+                        listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
+                    });
+                }
+                document.getElementById("rankingList").innerHTML = listHtml;
+            } catch (e) {
+                console.error("初期ランキング読み込みエラー:", e);
+            }
+        });
+        
         function loop() {
             update();
             draw();
