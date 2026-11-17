@@ -90,10 +90,10 @@
             display: flex;
         }
         .jump-btn {
-            width: 130px; /* ボタン幅を広げて改行を防ぐ */
+            width: 130px;
             height: 60px;
-            font-size: 18px; /* フォントサイズを微調整して収まりよくする */
-            white-space: nowrap; /* テキストの強制改行を防止 */
+            font-size: 18px;
+            white-space: nowrap;
             background-color: #ff5533;
             color: #fff;
             border: 3px solid #cc3311;
@@ -586,11 +586,11 @@
             { x: 1480, y: 225, width: 90, height: 75, type: 3 }
         ];
 
-        // ハリネズミの速度を30%遅く修正（以前の速度の 0.7 倍）
+        // ハリネズミ（歩行アニメーション用の walkTimer を追加）
         let enemies = [
-            { x: 500, y: 275, width: 44, height: 25, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false },
-            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false },
-            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false }
+            { x: 500, y: 275, width: 44, height: 25, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 0 },
+            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false, walkTimer: 2 },
+            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 4 }
         ];
 
         let cameraX = 0;
@@ -1322,6 +1322,26 @@
                 ctx.scale(-1, 1);
             }
 
+            // 小さな脚の歩行アニメーション用オフセット
+            let legOffset1 = Math.sin(enemy.walkTimer) * 2;
+            let legOffset2 = Math.cos(enemy.walkTimer) * 2;
+
+            // 左脚（後ろ側）
+            ctx.fillStyle = "#5c3a21";
+            ctx.strokeStyle = "#2b1303";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(10 + legOffset1, 23, 3, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 右脚（前側）
+            ctx.beginPath();
+            ctx.ellipse(26 - legOffset1, 23, 3, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 尻尾の小パーツ
             ctx.fillStyle = "#8c6239";
             ctx.beginPath();
             ctx.ellipse(-2, 15, 5, 2.5, 0.2, 0, Math.PI * 2);
@@ -1337,6 +1357,7 @@
             ctx.lineTo(1, 10);
             ctx.fill();
 
+            // 背中のハリ
             for (let i = 0; i < 6; i++) {
                 ctx.beginPath();
                 ctx.moveTo(2 + i * 6, 10);
@@ -1345,6 +1366,7 @@
                 ctx.fill();
             }
 
+            // 胴体
             ctx.fillStyle = "#8c6239";
             ctx.beginPath();
             ctx.ellipse(20, 14, 18, 11, 0, 0, Math.PI * 2);
@@ -1353,11 +1375,13 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
+            // 顔
             ctx.fillStyle = "#d4a373";
             ctx.beginPath();
             ctx.arc(32, 13, 7, 0, Math.PI * 2);
             ctx.fill();
 
+            // 目
             ctx.fillStyle = "#111";
             if (enemy.isBlinking) {
                 ctx.lineWidth = 1.5;
@@ -1755,6 +1779,7 @@
 
             enemies.forEach(enemy => {
                 enemy.x += enemy.speed * enemy.dir;
+                enemy.walkTimer += 0.2; // 脚を動かすタイマーを進める
                 
                 if (enemy.x < 300 || enemy.x > damX - enemy.width || Math.random() < 0.008) {
                     enemy.dir *= -1;
