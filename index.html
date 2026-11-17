@@ -161,7 +161,7 @@
         #rankingList {
             text-align: left;
             font-size: 13px;
-            max-height: 200px;
+            max-height: 180px;
             overflow-y: auto;
             margin-bottom: 12px;
             background: #2a2a2a;
@@ -230,8 +230,8 @@
     <!-- ランキング＆名前登録モーダル -->
     <div id="rankingModal">
         <h3 id="modalTitle">🏆 タイムアタック ランキング</h3>
-        <!-- 登録完了時に順位を表示するエリア -->
-        <div id="resultMessage" style="display:none; background: #332200; border: 2px solid #ffcc00; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 15px; color: #ffff66;"></div>
+        <!-- 順位結果メッセージ -->
+        <div id="resultMessage" style="display:none; background: #332200; border: 2px solid #ffcc00; padding: 8px; border-radius: 6px; margin-bottom: 10px; font-size: 14px; color: #ffff66;"></div>
         
         <div id="nameEntryArea" style="margin-bottom: 10px; display:none;">
             <p style="font-size: 13px; margin: 4px 0;">お名前を入力してください:</p>
@@ -299,6 +299,38 @@
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+        }
+
+        // ✨ 誰も聞いたことのないワクワクするオリジナルクリアファンファーレ
+        function playVictoryFanfare() {
+            initAudio();
+            if (!audioCtx) return;
+            
+            // メロディの音符（周波数）とタイミング（秒）
+            let notes = [
+                { f: 523.25, t: 0.0,  d: 0.12 }, // ド
+                { f: 659.25, t: 0.12, d: 0.12 }, // ミ
+                { f: 783.99, t: 0.24, d: 0.12 }, // ソ
+                { f: 1046.5, t: 0.36, d: 0.25 }, // 高いド
+                { f: 880.00, t: 0.65, d: 0.12 }, // ラ
+                { f: 987.77, t: 0.77, d: 0.12 }, // シ
+                { f: 1174.66, t: 0.92, d: 0.4 }  // 高いレ（伸びる）
+            ];
+
+            notes.forEach(n => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'triangle'; // 温かみのある柔らかい音色
+                osc.frequency.setValueAtTime(n.f, audioCtx.currentTime + n.t);
+                
+                gain.gain.setValueAtTime(0.18, audioCtx.currentTime + n.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + n.t + n.d);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + n.t);
+                osc.stop(audioCtx.currentTime + n.t + n.d);
+            });
         }
 
         function playJumpSound() {
@@ -545,9 +577,11 @@
             return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(millis).padStart(2, '0')}`;
         }
 
+        // ✨ クリア時に自分の現在の順位を自動計算してモーダル表示する関数
         async function openRankingModal(showEntry = false) {
             let ranking = await getCloudRanking();
             let listHtml = "";
+            
             if (ranking.length === 0) {
                 listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
             } else {
@@ -555,10 +589,22 @@
                     listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
                 });
             }
+            
             document.getElementById("rankingList").innerHTML = listHtml;
             document.getElementById("nameEntryArea").style.display = showEntry ? "block" : "none";
-            document.getElementById("resultMessage").style.display = "none"; // 結果表示は初期非表示
-            document.getElementById("modalTitle").innerText = showEntry ? "🎉 ランクインおめでとう！" : "🏆 タイムアタック ランキング";
+            
+            // クリア時なら、今回のタイムが何位になるかをその場で算出して即座に表示！
+            let resMsg = document.getElementById("resultMessage");
+            if (showEntry) {
+                let totalScoreMs = elapsedTime + penaltyTime;
+                let currentRank = ranking.filter(r => r.timeMs < totalScoreMs).length + 1;
+                resMsg.innerHTML = `🎉 クリアタイム: <b>${finalTimeString}</b><br>いま登録すると <span style="font-size:20px; color:#ff3333;">【 ${currentRank}位 】</span> です！`;
+                resMsg.style.display = "block";
+                document.getElementById("modalTitle").innerText = "🎉 ランクインおめでとう！";
+            } else {
+                resMsg.style.display = "none";
+                document.getElementById("modalTitle").innerText = "🏆 タイムアタック ランキング";
+            }
             
             let regBtn = document.getElementById("registerBtn");
             if(regBtn) {
@@ -585,7 +631,6 @@
             alert("クラウドランキングのリセットはFirebaseコンソールから行ってください。");
         }
 
-        // ✨ 登録ボタンを押したら窓を閉じずに、モーダル内に順位を大きく表示するように改善
         async function saveScore() {
             let regBtn = document.getElementById("registerBtn");
             if (regBtn.disabled) return;
@@ -597,23 +642,23 @@
             regBtn.disabled = true;
             regBtn.innerText = "登録中...";
 
-            // クラウドへスコアを保存
+            // クラウドへ保存
             await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
-            // 最新のランキングを取得して順位を計算
+            // 最新ランキング再取得
             let ranking = await getCloudRanking();
             let userRank = ranking.filter(r => r.timeMs < totalScoreMs).length + 1;
 
             scoreRegistered = true;
 
-            // 入力欄を隠して、結果メッセージを表示する
+            // 入力欄を隠して「あなたは〇位でした！」結果を大きく表示
             document.getElementById("nameEntryArea").style.display = "none";
             let resMsg = document.getElementById("resultMessage");
-            resMsg.innerHTML = `🎉 登録完了！<br><b>${playerName}</b> さんは<br><span style="font-size:22px; color:#ff3333;">【 ${userRank}位 】</span> でした！`;
+            resMsg.innerHTML = `✨ 登録完了！<br><b>${playerName}</b> さんは<br><span style="font-size:22px; color:#ff3333;">【 ${userRank}位 】</span> でした！`;
             resMsg.style.display = "block";
             document.getElementById("modalTitle").innerText = "🏆 順位結果";
 
-            // ランキングリストも最新に更新
+            // ランキング一覧を更新
             let listHtml = "";
             ranking.forEach((r, index) => {
                 listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
@@ -1475,11 +1520,14 @@
                     timerRunning = false;
                     finalTimeString = formatTime(elapsedTime + penaltyTime);
                     
+                    // ✨ クリア確定時にファンファーレを演奏する！
+                    playVictoryFanfare();
+                    
                     if (!scoreRegistered && !clearModalTriggered) {
                         clearModalTriggered = true;
                         setTimeout(() => {
                             openRankingModal(true);
-                        }, 800);
+                        }, 900);
                     }
                 }
 
