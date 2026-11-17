@@ -230,6 +230,9 @@
     <!-- ランキング＆名前登録モーダル -->
     <div id="rankingModal">
         <h3 id="modalTitle">🏆 タイムアタック ランキング</h3>
+        <!-- 登録完了時に順位を表示するエリア -->
+        <div id="resultMessage" style="display:none; background: #332200; border: 2px solid #ffcc00; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 15px; color: #ffff66;"></div>
+        
         <div id="nameEntryArea" style="margin-bottom: 10px; display:none;">
             <p style="font-size: 13px; margin: 4px 0;">お名前を入力してください:</p>
             <input type="text" id="nameInput" maxlength="10" placeholder="なまえ">
@@ -255,7 +258,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 🏆 ランキングを最大1000位まで取得するように変更
         async function getCloudRanking() {
             try {
                 let snapshot = await db.collection("rankings")
@@ -555,6 +557,7 @@
             }
             document.getElementById("rankingList").innerHTML = listHtml;
             document.getElementById("nameEntryArea").style.display = showEntry ? "block" : "none";
+            document.getElementById("resultMessage").style.display = "none"; // 結果表示は初期非表示
             document.getElementById("modalTitle").innerText = showEntry ? "🎉 ランクインおめでとう！" : "🏆 タイムアタック ランキング";
             
             let regBtn = document.getElementById("registerBtn");
@@ -582,33 +585,40 @@
             alert("クラウドランキングのリセットはFirebaseコンソールから行ってください。");
         }
 
-        // 🛡️ 無記名時は「名無しさん」にし、登録ボタンを押したら即座に窓を閉じて順位を表示する改善
+        // ✨ 登録ボタンを押したら窓を閉じずに、モーダル内に順位を大きく表示するように改善
         async function saveScore() {
             let regBtn = document.getElementById("registerBtn");
             if (regBtn.disabled) return;
 
             let nameInput = document.getElementById("nameInput").value.trim();
-            // 未入力なら「名無しさん」に設定
             let playerName = nameInput !== "" ? nameInput : "名無しさん";
             let totalScoreMs = elapsedTime + penaltyTime;
 
             regBtn.disabled = true;
             regBtn.innerText = "登録中...";
 
-            // 1. すぐにモーダルを閉じる（通信待ちで窓が残らないようにする）
-            document.getElementById("rankingModal").style.display = "none";
-            scoreRegistered = true;
-
-            // 2. クラウドへスコアを非同期保存
+            // クラウドへスコアを保存
             await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
-            // 3. 最新のランキングを取得して順位を計算する
+            // 最新のランキングを取得して順位を計算
             let ranking = await getCloudRanking();
-            // 今回登録したスコアが何位か判定（自分と同じスコアか、上から順に走査）
             let userRank = ranking.filter(r => r.timeMs < totalScoreMs).length + 1;
 
-            // 4. 何位だったかポップアップでお知らせ
-            alert(`🎉 スコア登録完了！\n${playerName} さんは 【 ${userRank}位 】 でした！`);
+            scoreRegistered = true;
+
+            // 入力欄を隠して、結果メッセージを表示する
+            document.getElementById("nameEntryArea").style.display = "none";
+            let resMsg = document.getElementById("resultMessage");
+            resMsg.innerHTML = `🎉 登録完了！<br><b>${playerName}</b> さんは<br><span style="font-size:22px; color:#ff3333;">【 ${userRank}位 】</span> でした！`;
+            resMsg.style.display = "block";
+            document.getElementById("modalTitle").innerText = "🏆 順位結果";
+
+            // ランキングリストも最新に更新
+            let listHtml = "";
+            ranking.forEach((r, index) => {
+                listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
+            });
+            document.getElementById("rankingList").innerHTML = listHtml;
         }
 
         function restartGame() {
