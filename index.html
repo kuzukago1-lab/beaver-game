@@ -10,7 +10,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap');
 
-        /* ✨ 画面全体のテキスト選択やカーソル・ハイライトを完全に禁止 */
+        /* 画面全体のテキスト選択やカーソル・ハイライトを完全に禁止 */
         * {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -51,7 +51,7 @@
             width: 100%;
             max-width: 800px;
             height: auto;
-            cursor: default; /* ✨ キャンバス上のカーソルを標準に固定 */
+            cursor: default;
         }
         .mobile-controls {
             display: flex;
@@ -197,7 +197,6 @@
             margin-right: 5px;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             font-weight: 800;
-            /* ✨ 名前入力欄だけは文字入力カーソルを許可 */
             -webkit-user-select: text;
             user-select: text;
         }
@@ -489,16 +488,25 @@
         let keys = {};
         window.addEventListener("keydown", (e) => {
             initAudio();
+            // 🛡️ スペースキーや矢印キーを押したときに画面がスクロールやボタンフォーカスしないように完全に防ぐ
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+                e.preventDefault();
+            }
             keys[e.code] = true;
         });
-        window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+        window.addEventListener("keyup", (e) => { 
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+                e.preventDefault();
+            }
+            keys[e.code] = false; 
+        });
 
         function setupTouchButton(id, code) {
             const btn = document.getElementById(id);
             btn.addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); keys[code] = true; });
             btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[code] = false; });
-            btn.addEventListener("mousedown", (e) => { initAudio(); keys[code] = true; });
-            btn.addEventListener("mouseup", (e) => { keys[code] = false; });
+            btn.addEventListener("mousedown", (e) => { e.preventDefault(); initAudio(); keys[code] = true; });
+            btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[code] = false; });
             btn.addEventListener("mouseleave", (e) => { keys[code] = false; });
         }
 
@@ -556,6 +564,14 @@
             }
 
             document.getElementById("rankingModal").style.display = "block";
+            // モーダルが開いた際に入力欄にフォーカスを当てる（背景ボタンへカーソルが移るのを防ぐ）
+            if (showEntry) {
+                let nameInput = document.getElementById("nameInput");
+                if (nameInput) {
+                    nameInput.value = "";
+                    setTimeout(() => nameInput.focus(), 100);
+                }
+            }
         }
 
         function closeRankingModal() {
@@ -581,7 +597,18 @@
             await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
             scoreRegistered = true;
-            openRankingModal(false);
+            
+            // ✨ 【超重要】登録ボタンを押したら登録用エリアを非表示にしてランキング一覧のみにする！
+            document.getElementById("nameEntryArea").style.display = "none";
+            document.getElementById("modalTitle").innerText = "🏆 タイムアタック ランキング";
+
+            // 最新のランキングを再読み込みして表示
+            let ranking = await getCloudRanking();
+            let listHtml = "";
+            ranking.forEach((r, index) => {
+                listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
+            });
+            document.getElementById("rankingList").innerHTML = listHtml;
         }
 
         function restartGame() {
