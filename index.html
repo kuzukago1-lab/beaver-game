@@ -370,6 +370,50 @@
             oscSweep.stop(audioCtx.currentTime + 0.65);
         }
 
+        // 🎵 ゲームオーバー時の「ギュルギュルブブブーーー」という淋しいサウンド
+        function playGameOverSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            // 1. 下降する「ギュルギュル」感のメロディ
+            let dropNotes = [
+                { f: 330.00, t: 0.0,  d: 0.18 },
+                { f: 293.66, t: 0.15, d: 0.18 },
+                { f: 261.63, t: 0.30, d: 0.18 },
+                { f: 220.00, t: 0.45, d: 0.30 }
+            ];
+
+            dropNotes.forEach(n => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(n.f, audioCtx.currentTime + n.t);
+                
+                gain.gain.setValueAtTime(0.18, audioCtx.currentTime + n.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + n.t + n.d);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + n.t);
+                osc.stop(audioCtx.currentTime + n.t + n.d);
+            });
+
+            // 2. 終わりの「ブブブーーー」という低い重低音（デチューン＋ノコギリ波）
+            let oscBass = audioCtx.createOscillator();
+            let gainBass = audioCtx.createGain();
+            oscBass.type = 'sawtooth';
+            oscBass.frequency.setValueAtTime(110.00, audioCtx.currentTime + 0.6); // A2
+            oscBass.frequency.linearRampToValueAtTime(55.00, audioCtx.currentTime + 1.2);  // A1へずーっと沈む
+
+            gainBass.gain.setValueAtTime(0.22, audioCtx.currentTime + 0.6);
+            gainBass.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.4);
+
+            oscBass.connect(gainBass);
+            gainBass.connect(audioCtx.destination);
+            oscBass.start(audioCtx.currentTime + 0.6);
+            oscBass.stop(audioCtx.currentTime + 1.4);
+        }
+
         function playVictoryFanfare() {
             initAudio();
             if (!audioCtx) return;
@@ -526,6 +570,7 @@
         const maxHp = 100;
         let gameOver = false;
         let gameClear = false;
+        let gameOverSoundPlayed = false; // 🎵 ゲームオーバー音の重複再生防止用
         let invincibilityTimer = 0;
         let deliverTimer = 0;
 
@@ -683,7 +728,6 @@
             document.activeElement.blur();
         }
 
-        // 🛡️ 登録ボタン処理（フリーズ防止＆確実なクラウド保存）
         async function saveScore() {
             let regBtn = document.getElementById("registerBtn");
             if (regBtn.disabled) return;
@@ -695,7 +739,6 @@
             regBtn.disabled = true;
             regBtn.innerText = "登録中...";
 
-            // 3秒のタイムアウト安全装置
             let safetyTimer = setTimeout(() => {
                 if (regBtn.disabled) {
                     regBtn.disabled = false;
@@ -707,24 +750,20 @@
             }, 3000);
 
             try {
-                // クラウドへ保存実行
                 await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
-                // 最新ランキング再取得
                 let ranking = await getCloudRanking();
                 let userRank = ranking.filter(r => r.timeMs < totalScoreMs).length + 1;
 
                 clearTimeout(safetyTimer);
                 scoreRegistered = true;
 
-                // 入力欄を隠して結果を表示
                 document.getElementById("nameEntryArea").style.display = "none";
                 let resMsg = document.getElementById("resultMessage");
                 resMsg.innerHTML = `✨ 登録完了！<br><b>${playerName}</b> さんは<br><span style="font-size:22px; color:#ff3333;">【 ${userRank}位 】</span> でした！`;
                 resMsg.style.display = "block";
                 document.getElementById("modalTitle").innerText = "🏆 順位結果";
 
-                // ランキング一覧を更新
                 updateRankingDisplay(ranking);
             } catch (err) {
                 clearTimeout(safetyTimer);
@@ -747,6 +786,7 @@
             damProgress = 0;
             hp = 100;
             gameOver = false;
+            gameOverSoundPlayed = false;
             gameClear = false;
             invincibilityTimer = 0;
             deliverTimer = 0;
@@ -1221,7 +1261,16 @@
             ctx.beginPath(); ctx.arc(49, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
             ctx.fillStyle = "#1a0c04";
-            if (beaver.isBlinking) {
+            if (gameOver) {
+                // ゲームオーバーのときは「××」の目でしょんぼり
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(26, 16); ctx.lineTo(32, 22);
+                ctx.moveTo(32, 16); ctx.lineTo(26, 22);
+                ctx.moveTo(38, 16); ctx.lineTo(44, 22);
+                ctx.moveTo(44, 16); ctx.lineTo(38, 22);
+                ctx.stroke();
+            } else if (beaver.isBlinking) {
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(26, 18); ctx.lineTo(32, 18);
@@ -1544,7 +1593,14 @@
         }
 
         function update() {
-            if (gameOver) return;
+            if (gameOver) {
+                // 🎵 ゲームオーバーになった瞬間に1回だけ寂しい専用サウンドを再生
+                if (!gameOverSoundPlayed) {
+                    gameOverSoundPlayed = true;
+                    playGameOverSound();
+                }
+                return;
+            }
 
             updateBGM();
             updateBabyBeavers();
@@ -1850,16 +1906,13 @@
             });
         }
 
-        // 🎨 ゲージを描画するヘルパー関数
         function drawStatusBar(x, y, width, height, current, max, label, fillColor) {
             ctx.save();
-            // ラベル
             ctx.fillStyle = "#000";
             ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
             ctx.fillText(label, x, y - 4);
 
-            // ゲージの背景（枠）
             ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 2;
@@ -1868,7 +1921,6 @@
             ctx.fill();
             ctx.stroke();
 
-            // ゲージの中身（バー）
             let ratio = Math.max(0, Math.min(1, current / max));
             if (ratio > 0) {
                 ctx.fillStyle = fillColor;
@@ -2058,7 +2110,6 @@
                 ctx.restore();
             });
 
-            // 🎨 UI表示（HPと完成度をグラフィカルなゲージに変更、木材数も表示）
             drawStatusBar(25, 20, 130, 16, hp, maxHp, "HP", "#ff3344");
             drawStatusBar(25, 55, 130, 16, damProgress, maxDam, "お家完成度", "#33cc44");
 
