@@ -129,13 +129,6 @@
             cursor: not-allowed;
             box-shadow: none;
         }
-        .reset-btn {
-            background-color: #cc4444;
-            color: #fff;
-        }
-        .reset-btn:hover {
-            background-color: #dd5555;
-        }
         #rankingModal {
             display: none;
             position: fixed;
@@ -238,8 +231,7 @@
             <button class="action-btn" id="registerBtn" onclick="saveScore()">登録</button>
         </div>
         <div id="rankingList"></div>
-        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-            <button class="action-btn reset-btn" onclick="resetRanking()">🗑️ リセット</button>
+        <div style="display: flex; justify-content: center; margin-top: 10px;">
             <button class="action-btn" onclick="closeRankingModal()">閉じる</button>
         </div>
     </div>
@@ -285,7 +277,6 @@
                 return ranking;
             } catch (e) {
                 console.error("ランキング取得エラー:", e);
-                // インデックス未作成などのエラー時のフォールバック（順序なしで取得してJS側で並び替え）
                 try {
                     let snapshot2 = await db.collection("rankings").get();
                     let ranking2 = [];
@@ -303,7 +294,6 @@
             let now = new Date();
             let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             
-            // Firestoreへデータを追加
             await db.collection("rankings").add({
                 name: playerName,
                 timeMs: timeMs,
@@ -648,10 +638,6 @@
         function closeRankingModal() {
             document.getElementById("rankingModal").style.display = "none";
             document.activeElement.blur();
-        }
-
-        function resetRanking() {
-            alert("クラウドランキングのリセットはFirebaseコンソールから行ってください。");
         }
 
         // 🛡️ 登録ボタン処理（フリーズ防止＆確実なクラウド保存）
