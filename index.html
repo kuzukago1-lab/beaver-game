@@ -355,7 +355,6 @@
                 osc.stop(audioCtx.currentTime + n.t + n.d);
             });
 
-            // 最後の「ピュピューン」の部分（高音から急上昇するスイープ音）
             let oscSweep = audioCtx.createOscillator();
             let gainSweep = audioCtx.createGain();
             oscSweep.type = 'triangle';
@@ -1587,7 +1586,7 @@
                 startTime = Date.now();
                 showStartText = true;
                 startTextTimer = 0;
-                playStartSound(); // 🎵 タイマースタート時にチュルチュルピュピューン音を再生
+                playStartSound();
             }
 
             if (showStartText) {
@@ -1851,6 +1850,35 @@
             });
         }
 
+        // 🎨 ゲージを描画するヘルパー関数
+        function drawStatusBar(x, y, width, height, current, max, label, fillColor) {
+            ctx.save();
+            // ラベル
+            ctx.fillStyle = "#000";
+            ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(label, x, y - 4);
+
+            // ゲージの背景（枠）
+            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x, y, width, height, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            // ゲージの中身（バー）
+            let ratio = Math.max(0, Math.min(1, current / max));
+            if (ratio > 0) {
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.roundRect(x + 2, y + 2, (width - 4) * ratio, height - 4, 3);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -2030,15 +2058,17 @@
                 ctx.restore();
             });
 
+            // 🎨 UI表示（HPと完成度をグラフィカルなゲージに変更、木材数も表示）
+            drawStatusBar(25, 20, 130, 16, hp, maxHp, "HP", "#ff3344");
+            drawStatusBar(25, 55, 130, 16, damProgress, maxDam, "お家完成度", "#33cc44");
+
             ctx.fillStyle = "#000";
-            ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
+            ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
-            ctx.fillText("HP: " + hp, 30, 30);
-            ctx.fillText("所持木材: " + woodCount, 30, 55);
-            ctx.fillText("お家完成度: " + damProgress + "%", 30, 80);
+            ctx.fillText("所持木材: " + woodCount, 175, 70);
             
             let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
-            ctx.fillText("TIME: " + formatTime(displayTime), 625, 30);
+            ctx.fillText("TIME: " + formatTime(displayTime), 625, 33);
 
             if (showStartText) {
                 ctx.save();
