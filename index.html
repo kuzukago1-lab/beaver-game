@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ビーバー・ダム・ビルダーズ タイムアタック版</title>
+    <!-- Firebaseの仕組みを読み込む -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap');
 
@@ -68,6 +71,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.4);
             font-family: 'M PLUS Rounded 1c', sans-serif;
             touch-action: none;
+            outline: none; /* フォーカス時の枠線を消す */
         }
         .ctrl-btn:active {
             background-color: #555;
@@ -106,7 +110,7 @@
             border-radius: 6px;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            outline: none;
+            outline: none; /* フォーカス時の枠線を消す */
         }
         .action-btn:hover {
             background-color: #ffdd33;
@@ -188,7 +192,6 @@
         <canvas id="gameCanvas" width="800" height="400"></canvas>
     </div>
     
-    <!-- スマホ対応コントロールボタン（左側に左右移動、右側にジャンプ） -->
     <div class="mobile-controls">
         <div class="d-pad">
             <button class="ctrl-btn" id="leftBtn">◀</button>
@@ -201,7 +204,7 @@
 
     <div class="menu-btns">
         <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
-        <button class="action-btn" id="rankingBtn" onclick="openRankingModal()">🏆 ランキングを見る</button>
+        <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキングを見る</button>
     </div>
     
     <div class="info">
@@ -224,6 +227,50 @@
     </div>
 
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            authDomain: "your-project-id.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function getCloudRanking() {
+            try {
+                let snapshot = await db.collection("rankings")
+                    .orderBy("timeMs", "asc")
+                    .limit(10)
+                    .get();
+                let ranking = [];
+                snapshot.forEach(doc => ranking.push(doc.data()));
+                return ranking;
+            } catch (e) {
+                console.error("ランキング取得エラー:", e);
+                return [];
+            }
+        }
+
+        async function saveCloudScore(playerName, timeMs, timeStr) {
+            try {
+                let now = new Date();
+                let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
+                await db.collection("rankings").add({
+                    name: playerName,
+                    timeMs: timeMs,
+                    timeStr: timeStr,
+                    date: dateStr,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (e) {
+                console.error("スコア保存エラー:", e);
+            }
+        }
+
         let audioCtx = null;
 
         function initAudio() {
@@ -415,7 +462,6 @@
         const damX = 1800;
         const worldWidth = 2200;
 
-        // 🦫 ダムの右側で待つビーバーの子どもたち（3匹）
         let babyBeavers = [
             { x: 1880, y: 262, vy: 0, vx: 0.8, facing: 1, walkTimer: 0, blinkTimer: 10, isBlinking: false, cheerText: "わーい！" },
             { x: 1965, y: 262, vy: 0, vx: -0.6, facing: -1, walkTimer: 2, blinkTimer: 60, isBlinking: false, cheerText: "やったー！" },
@@ -471,13 +517,8 @@
             return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(millis).padStart(2, '0')}`;
         }
 
-        function getRanking() {
-            let data = localStorage.getItem("beaver_ranking");
-            return data ? JSON.parse(data) : [];
-        }
-
-        function openRankingModal(showEntry = false) {
-            let ranking = getRanking();
+        async function openRankingModal(showEntry = false) {
+            let ranking = await getCloudRanking();
             let listHtml = "";
             if (ranking.length === 0) {
                 listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
@@ -498,39 +539,30 @@
         }
 
         function resetRanking() {
-            if (confirm("本当にすべてのランキング記録をリセットしますか？")) {
-                localStorage.removeItem("beaver_ranking");
-                openRankingModal(false);
-            }
+            alert("クラウドランキングのリセットはFirebaseコンソールから行ってください。");
         }
 
-        function saveScore() {
+        async function saveScore() {
             let nameInput = document.getElementById("nameInput").value.trim();
             let playerName = nameInput !== "" ? nameInput : "名無しビーバー";
-            
-            let now = new Date();
-            let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            
-            let ranking = getRanking();
             let totalScoreMs = elapsedTime + penaltyTime;
-            ranking.push({
-                name: playerName,
-                timeMs: totalScoreMs,
-                timeStr: finalTimeString,
-                date: dateStr
-            });
 
-            ranking.sort((a, b) => a.timeMs - b.timeMs);
-            ranking = ranking.slice(0, 10);
+            await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
-            localStorage.setItem("beaver_ranking", JSON.stringify(ranking));
             scoreRegistered = true;
             openRankingModal(false);
         }
 
+        // ✨ 【修正箇所】リスタート時にキーの入力状態とボタンのフォーカスを完全にリセット！
         function restartGame() {
-            closeRankingModal();
+            // 押されたままになっているキー情報をすべてクリア
+            keys = {};
+
+            // ボタンに残っているフォーカス（カーソル）を強制解除
+            document.getElementById("restartBtn").blur();
             document.activeElement.blur();
+
+            closeRankingModal();
 
             woodCount = 0;
             damProgress = 0;
@@ -559,7 +591,6 @@
             beaver.blinkTimer = 0;
             beaver.isBlinking = false;
 
-            // 子ビーバーの位置リセット
             babyBeavers[0].x = 1880; babyBeavers[0].y = 262; babyBeavers[0].vy = 0;
             babyBeavers[1].x = 1965; babyBeavers[1].y = 262; babyBeavers[1].vy = 0;
             babyBeavers[2].x = 2050; babyBeavers[2].y = 262; babyBeavers[2].vy = 0;
@@ -780,15 +811,14 @@
             ctx.restore();
         }
 
-        // 🦫 子ビーバー描画関数（メインキャラのミニチュア版）
         function drawBabyBeaver(baby) {
             ctx.save();
             ctx.translate(baby.x, baby.y);
-            ctx.scale(0.52, 0.52); // 約半分のミニサイズ！
+            ctx.scale(0.52, 0.52);
 
             const outlineColor = "#2b1303";
             const strokeWidth = 3;
-            const bodyColor = "#c46b23"; // 子どもらしく少し明るめの可愛い茶色
+            const bodyColor = "#c46b23";
             const headColor = "#d1762c";
             const tailColor = "#6e472b";
             const legColor = "#8f4614";
@@ -797,7 +827,6 @@
             let hipSway = Math.sin(baby.walkTimer) * 3;
             let tailWag = Math.cos(baby.walkTimer * 2) * 0.15;
 
-            // しっぽ
             ctx.save();
             ctx.translate(0, hipSway);
             let tailX = (baby.facing === 1) ? 2 : 68;
@@ -810,7 +839,6 @@
             ctx.stroke();
             ctx.restore();
 
-            // 足
             ctx.fillStyle = legColor;
             ctx.strokeStyle = outlineColor;
             ctx.lineWidth = strokeWidth;
@@ -828,7 +856,6 @@
             ctx.save();
             ctx.translate(0, hipSway);
 
-            // 体・お腹
             ctx.fillStyle = bodyColor;
             ctx.beginPath();
             ctx.ellipse(35, 42, 20, 18, 0, 0, Math.PI * 2);
@@ -839,7 +866,6 @@
             ctx.ellipse(35, 43, 12, 11, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // 頭・耳
             ctx.fillStyle = headColor;
             ctx.beginPath();
             ctx.arc(35, 22, 17, 0, Math.PI * 2);
@@ -850,7 +876,6 @@
             ctx.beginPath(); ctx.arc(21, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
             ctx.beginPath(); ctx.arc(49, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
-            // 目（クリア時は満面の笑み ^ ^ ）
             ctx.fillStyle = "#1a0c04";
             ctx.strokeStyle = "#1a0c04";
             if (gameClear) {
@@ -872,7 +897,6 @@
                 ctx.fill();
             }
 
-            // 鼻・口・前歯
             ctx.fillStyle = "#f2c185";
             ctx.strokeStyle = outlineColor;
             ctx.lineWidth = strokeWidth;
@@ -889,7 +913,6 @@
             ctx.lineWidth = 1.2;
             ctx.strokeRect(33, 27, 4, 6);
 
-            // ヒゲ
             ctx.strokeStyle = "#2b1303";
             ctx.lineWidth = 1.5;
             ctx.lineCap = "round";
@@ -900,7 +923,6 @@
             ctx.moveTo(44, 27); ctx.lineTo(58, 33);
             ctx.stroke();
 
-            // 腕（クリア時はバンザイ！）
             ctx.fillStyle = armColor;
             ctx.strokeStyle = outlineColor;
             ctx.lineWidth = strokeWidth;
@@ -929,7 +951,6 @@
             ctx.restore();
             ctx.restore();
 
-            // クリア時は頭上に喜びの吹き出しテキストを表示
             if (gameClear) {
                 ctx.save();
                 ctx.font = "bold 12px 'M PLUS Rounded 1c', sans-serif";
@@ -1272,7 +1293,6 @@
             });
         }
 
-        // 🦫 子ビーバーたちの動きを更新する関数
         function updateBabyBeavers() {
             let maxBlocks = 10;
             let currentBlocks = Math.floor((damProgress / 100) * maxBlocks);
@@ -1280,12 +1300,9 @@
             let totalWoodHeight = currentBlocks * blockHeight;
             let waterOffset = (damProgress > 0) ? 6 : 0;
             let currentWaterHeight = Math.max(0, totalWoodHeight - waterOffset);
-            
-            // 子ビーバーが立つ高さ（水がある場合は水面にぷかぷか浮かぶ）
             let targetBaseY = (currentWaterHeight > 10) ? (300 - currentWaterHeight - 25) : 262;
 
             babyBeavers.forEach((baby, index) => {
-                // まばたき
                 baby.blinkTimer++;
                 if (!baby.isBlinking && baby.blinkTimer > 100 + index * 30) {
                     baby.isBlinking = true;
@@ -1296,26 +1313,22 @@
                 }
 
                 if (gameClear) {
-                    // 🎉 完成後はピョンピョン高くはねて大喜び！
                     baby.x += baby.vx * 1.8;
                     if (baby.x < damX + 55) { baby.x = damX + 55; baby.vx = Math.abs(baby.vx); baby.facing = 1; }
                     if (baby.x > worldWidth - 65) { baby.x = worldWidth - 65; baby.vx = -Math.abs(baby.vx); baby.facing = -1; }
 
-                    baby.vy += 0.45; // 重力
+                    baby.vy += 0.45;
                     baby.y += baby.vy;
                     baby.walkTimer += 0.35;
 
                     if (baby.y >= targetBaseY) {
                         baby.y = targetBaseY;
-                        // 元気よくジャンプ！
                         baby.vy = -7.5 - (index % 2) * 2.0; 
                     }
                 } else {
-                    // 普段はダムの右側でゆっくりチョロチョロ動き回る
                     baby.x += baby.vx;
                     baby.walkTimer += 0.15;
 
-                    // ダムの壁(damX + 45)と画面右端(worldWidth - 60)の間を行き来
                     if (baby.x < damX + 55) {
                         baby.x = damX + 55;
                         baby.vx = Math.abs(baby.vx);
@@ -1325,12 +1338,10 @@
                         baby.vx = -Math.abs(baby.vx);
                         baby.facing = -1;
                     } else if (Math.random() < 0.01) {
-                        // たまに気まぐれに方向転換
                         baby.vx *= -1;
                         baby.facing = (baby.vx > 0) ? 1 : -1;
                     }
 
-                    // 水位に合わせてぷかぷか追従
                     let bobbing = (currentWaterHeight > 10) ? Math.sin(Date.now() * 0.005 + index) * 2 : 0;
                     baby.y += ((targetBaseY + bobbing) - baby.y) * 0.15;
                 }
@@ -1398,7 +1409,9 @@
                     timerRunning = false;
                     finalTimeString = formatTime(elapsedTime + penaltyTime);
                     if (!scoreRegistered) {
-                        setTimeout(() => openRankingModal(true), 1000);
+                        setTimeout(() => {
+                            openRankingModal(true);
+                        }, 800);
                     }
                 }
 
@@ -1744,7 +1757,6 @@
                 drawSparkleStar(sp.x, sp.y, sp.size, sp.alpha);
             });
 
-            // 🦫 子ビーバーの描画（水の手前/中に入るように配置）
             babyBeavers.forEach(baby => {
                 drawBabyBeaver(baby);
             });
