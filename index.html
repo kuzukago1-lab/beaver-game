@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ビーバー・ダム・ビルダーズ タイムアタック版</title>
-    <!-- Firebaseの仕組みを読み込む -->
+    <!-- Firebaseの仕組みを読み込む（v10互換CDN） -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
@@ -255,24 +255,39 @@
             measurementId: "G-6RM0CQXDBL"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        // Firebaseの初期化（二重初期化防止）
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
-        // 🏆 ランキング取得（エラーや重いインデックス要求を防ぐため安全に最大1000件取得）
+        // 🔄 ページ読み込み時に自動でクラウドからランキングを取得して表示
+        window.addEventListener("DOMContentLoaded", async () => {
+            try {
+                let ranking = await getCloudRanking();
+                updateRankingDisplay(ranking);
+            } catch (e) {
+                console.error("初期ランキング読込エラー:", e);
+            }
+        });
+
+        // 🏆 クラウドからランキングを取得する処理
         async function getCloudRanking() {
             try {
                 let snapshot = await db.collection("rankings")
                     .orderBy("timeMs", "asc")
-                    .limit(1000)
+                    .limit(50)
                     .get();
                 let ranking = [];
-                snapshot.forEach(doc => ranking.push(doc.data()));
+                snapshot.forEach(doc => {
+                    ranking.push(doc.data());
+                });
                 return ranking;
             } catch (e) {
                 console.error("ランキング取得エラー:", e);
-                // インデックスエラー等の万が一の場合でもクラッシュしないよう、フォールバックとして順序なしで再取得を試みる
+                // インデックス未作成などのエラー時のフォールバック（順序なしで取得してJS側で並び替え）
                 try {
-                    let snapshot2 = await db.collection("rankings").limit(1000).get();
+                    let snapshot2 = await db.collection("rankings").get();
                     let ranking2 = [];
                     snapshot2.forEach(doc => ranking2.push(doc.data()));
                     ranking2.sort((a, b) => a.timeMs - b.timeMs);
@@ -283,21 +298,32 @@
             }
         }
 
+        // 📝 クラウドへスコアを確実に保存する処理
         async function saveCloudScore(playerName, timeMs, timeStr) {
-            try {
-                let now = new Date();
-                let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                
-                await db.collection("rankings").add({
-                    name: playerName,
-                    timeMs: timeMs,
-                    timeStr: timeStr,
-                    date: dateStr,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            let now = new Date();
+            let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Firestoreへデータを追加
+            await db.collection("rankings").add({
+                name: playerName,
+                timeMs: timeMs,
+                timeStr: timeStr,
+                date: dateStr,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // ランキング一覧のHTMLを生成する共通関数
+        function updateRankingDisplay(ranking) {
+            let listHtml = "";
+            if (ranking.length === 0) {
+                listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
+            } else {
+                ranking.forEach((r, index) => {
+                    listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
                 });
-            } catch (e) {
-                console.error("スコア保存エラー:", e);
             }
+            document.getElementById("rankingList").innerHTML = listHtml;
         }
 
         let audioCtx = null;
@@ -587,17 +613,8 @@
 
         async function openRankingModal(showEntry = false) {
             let ranking = await getCloudRanking();
-            let listHtml = "";
+            updateRankingDisplay(ranking);
             
-            if (ranking.length === 0) {
-                listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
-            } else {
-                ranking.forEach((r, index) => {
-                    listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
-                });
-            }
-            
-            document.getElementById("rankingList").innerHTML = listHtml;
             document.getElementById("nameEntryArea").style.display = showEntry ? "block" : "none";
             
             let resMsg = document.getElementById("resultMessage");
@@ -637,7 +654,7 @@
             alert("クラウドランキングのリセットはFirebaseコンソールから行ってください。");
         }
 
-        // 🛡️ 登録ボタンが「登録中...」のまま固まらないようにタイムアウト保護付きに改善
+        // 🛡️ 登録ボタン処理（フリーズ防止＆確実なクラウド保存）
         async function saveScore() {
             let regBtn = document.getElementById("registerBtn");
             if (regBtn.disabled) return;
@@ -649,7 +666,7 @@
             regBtn.disabled = true;
             regBtn.innerText = "登録中...";
 
-            // 🛡️ 万が一通信が遅延・失敗しても絶対に固まらないための強制解除タイマー（3秒）
+            // 3秒のタイムアウト安全装置
             let safetyTimer = setTimeout(() => {
                 if (regBtn.disabled) {
                     regBtn.disabled = false;
@@ -661,7 +678,7 @@
             }, 3000);
 
             try {
-                // クラウドへ保存
+                // クラウドへ保存実行
                 await saveCloudScore(playerName, totalScoreMs, finalTimeString);
 
                 // 最新ランキング再取得
@@ -671,7 +688,7 @@
                 clearTimeout(safetyTimer);
                 scoreRegistered = true;
 
-                // 入力欄を隠して「あなたは〇位でした！」結果を表示
+                // 入力欄を隠して結果を表示
                 document.getElementById("nameEntryArea").style.display = "none";
                 let resMsg = document.getElementById("resultMessage");
                 resMsg.innerHTML = `✨ 登録完了！<br><b>${playerName}</b> さんは<br><span style="font-size:22px; color:#ff3333;">【 ${userRank}位 】</span> でした！`;
@@ -679,15 +696,12 @@
                 document.getElementById("modalTitle").innerText = "🏆 順位結果";
 
                 // ランキング一覧を更新
-                let listHtml = "";
-                ranking.forEach((r, index) => {
-                    listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
-                });
-                document.getElementById("rankingList").innerHTML = listHtml;
+                updateRankingDisplay(ranking);
             } catch (err) {
                 clearTimeout(safetyTimer);
                 regBtn.disabled = false;
                 regBtn.innerText = "登録";
+                console.error("保存失敗:", err);
                 alert("通信エラーが発生しました。もう一度お試しください。");
             }
         }
@@ -2025,24 +2039,6 @@
             }
         }
 
-        // 🔄 ページ読み込み時にクラウドからランキングを自動取得して表示に反映する
-        window.addEventListener("DOMContentLoaded", async () => {
-            try {
-                let ranking = await getCloudRanking();
-                let listHtml = "";
-                if (ranking.length === 0) {
-                    listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
-                } else {
-                    ranking.forEach((r, index) => {
-                        listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
-                    });
-                }
-                document.getElementById("rankingList").innerHTML = listHtml;
-            } catch (e) {
-                console.error("初期ランキング読み込みエラー:", e);
-            }
-        });
-        
         function loop() {
             update();
             draw();
