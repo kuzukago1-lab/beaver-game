@@ -71,7 +71,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.4);
             font-family: 'M PLUS Rounded 1c', sans-serif;
             touch-action: none;
-            outline: none; /* フォーカス時の枠線を消す */
+            outline: none;
         }
         .ctrl-btn:active {
             background-color: #555;
@@ -110,7 +110,7 @@
             border-radius: 6px;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            outline: none; /* フォーカス時の枠線を消す */
+            outline: none;
         }
         .action-btn:hover {
             background-color: #ffdd33;
@@ -417,6 +417,7 @@
         let timerRunning = false;
         let finalTimeString = "";
         let scoreRegistered = false;
+        let clearModalTriggered = false; // 👈 連続ポップを防ぐための専用フラグ！
 
         let clearTimer = 0;
         const maxClearTime = 360;
@@ -553,12 +554,8 @@
             openRankingModal(false);
         }
 
-        // ✨ 【修正箇所】リスタート時にキーの入力状態とボタンのフォーカスを完全にリセット！
         function restartGame() {
-            // 押されたままになっているキー情報をすべてクリア
             keys = {};
-
-            // ボタンに残っているフォーカス（カーソル）を強制解除
             document.getElementById("restartBtn").blur();
             document.activeElement.blur();
 
@@ -579,6 +576,7 @@
             buildSparkles = [];
             carrots = [];
             carrotSpawnTimer = 0;
+            clearModalTriggered = false; // 👈 リスタート時にフラグもリセット
             
             beaver.x = 100;
             beaver.y = 220;
@@ -1408,7 +1406,10 @@
                 if (clearTimer === 0) {
                     timerRunning = false;
                     finalTimeString = formatTime(elapsedTime + penaltyTime);
-                    if (!scoreRegistered) {
+                    
+                    // ✨【超重要修正】クリア時にまだ一度もポップアップしていない場合のみ、1回だけ実行する！
+                    if (!scoreRegistered && !clearModalTriggered) {
+                        clearModalTriggered = true; // 二度と勝手に開かないようにフラグを立てる
                         setTimeout(() => {
                             openRankingModal(true);
                         }, 800);
