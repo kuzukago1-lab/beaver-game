@@ -90,9 +90,10 @@
             display: flex;
         }
         .jump-btn {
-            width: 110px;
+            width: 130px; /* ボタン幅を広げて改行を防ぐ */
             height: 60px;
-            font-size: 20px;
+            font-size: 18px; /* フォントサイズを微調整して収まりよくする */
+            white-space: nowrap; /* テキストの強制改行を防止 */
             background-color: #ff5533;
             color: #fff;
             border: 3px solid #cc3311;
@@ -585,10 +586,11 @@
             { x: 1480, y: 225, width: 90, height: 75, type: 3 }
         ];
 
+        // ハリネズミの速度を30%遅く修正（以前の速度の 0.7 倍）
         let enemies = [
-            { x: 500, y: 275, width: 44, height: 25, speed: 2.5, dir: 1, blinkTimer: 0, isBlinking: false },
-            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5, dir: -1, blinkTimer: 0, isBlinking: false },
-            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0, dir: 1, blinkTimer: 0, isBlinking: false }
+            { x: 500, y: 275, width: 44, height: 25, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false },
+            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false },
+            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false }
         ];
 
         let cameraX = 0;
