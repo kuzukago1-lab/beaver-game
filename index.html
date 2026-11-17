@@ -328,6 +328,49 @@
             }
         }
 
+        // 🎵 スタート時の「チュルチュルピュピューン」効果音
+        function playStartSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            let notes = [
+                { f: 440.00, t: 0.0,  d: 0.08 },
+                { f: 554.37, t: 0.07, d: 0.08 },
+                { f: 659.25, t: 0.14, d: 0.08 },
+                { f: 880.00, t: 0.21, d: 0.25 }
+            ];
+
+            notes.forEach(n => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(n.f, audioCtx.currentTime + n.t);
+                
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + n.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + n.t + n.d);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + n.t);
+                osc.stop(audioCtx.currentTime + n.t + n.d);
+            });
+
+            // 最後の「ピュピューン」の部分（高音から急上昇するスイープ音）
+            let oscSweep = audioCtx.createOscillator();
+            let gainSweep = audioCtx.createGain();
+            oscSweep.type = 'triangle';
+            oscSweep.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.3);
+            oscSweep.frequency.exponentialRampToValueAtTime(1318.51, audioCtx.currentTime + 0.6);
+
+            gainSweep.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.3);
+            gainSweep.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.65);
+
+            oscSweep.connect(gainSweep);
+            gainSweep.connect(audioCtx.destination);
+            oscSweep.start(audioCtx.currentTime + 0.3);
+            oscSweep.stop(audioCtx.currentTime + 0.65);
+        }
+
         function playVictoryFanfare() {
             initAudio();
             if (!audioCtx) return;
@@ -586,7 +629,6 @@
             { x: 1480, y: 225, width: 90, height: 75, type: 3 }
         ];
 
-        // ハリネズミ（歩行アニメーション用の walkTimer を追加）
         let enemies = [
             { x: 500, y: 275, width: 44, height: 25, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 0 },
             { x: 1200, y: 275, width: 44, height: 25, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false, walkTimer: 2 },
@@ -1322,11 +1364,8 @@
                 ctx.scale(-1, 1);
             }
 
-            // 小さな脚の歩行アニメーション用オフセット
             let legOffset1 = Math.sin(enemy.walkTimer) * 2;
-            let legOffset2 = Math.cos(enemy.walkTimer) * 2;
 
-            // 左脚（後ろ側）
             ctx.fillStyle = "#5c3a21";
             ctx.strokeStyle = "#2b1303";
             ctx.lineWidth = 1;
@@ -1335,13 +1374,11 @@
             ctx.fill();
             ctx.stroke();
 
-            // 右脚（前側）
             ctx.beginPath();
             ctx.ellipse(26 - legOffset1, 23, 3, 2.5, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // 尻尾の小パーツ
             ctx.fillStyle = "#8c6239";
             ctx.beginPath();
             ctx.ellipse(-2, 15, 5, 2.5, 0.2, 0, Math.PI * 2);
@@ -1357,7 +1394,6 @@
             ctx.lineTo(1, 10);
             ctx.fill();
 
-            // 背中のハリ
             for (let i = 0; i < 6; i++) {
                 ctx.beginPath();
                 ctx.moveTo(2 + i * 6, 10);
@@ -1366,7 +1402,6 @@
                 ctx.fill();
             }
 
-            // 胴体
             ctx.fillStyle = "#8c6239";
             ctx.beginPath();
             ctx.ellipse(20, 14, 18, 11, 0, 0, Math.PI * 2);
@@ -1375,13 +1410,11 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // 顔
             ctx.fillStyle = "#d4a373";
             ctx.beginPath();
             ctx.arc(32, 13, 7, 0, Math.PI * 2);
             ctx.fill();
 
-            // 目
             ctx.fillStyle = "#111";
             if (enemy.isBlinking) {
                 ctx.lineWidth = 1.5;
@@ -1554,6 +1587,7 @@
                 startTime = Date.now();
                 showStartText = true;
                 startTextTimer = 0;
+                playStartSound(); // 🎵 タイマースタート時にチュルチュルピュピューン音を再生
             }
 
             if (showStartText) {
@@ -1779,7 +1813,7 @@
 
             enemies.forEach(enemy => {
                 enemy.x += enemy.speed * enemy.dir;
-                enemy.walkTimer += 0.2; // 脚を動かすタイマーを進める
+                enemy.walkTimer += 0.2;
                 
                 if (enemy.x < 300 || enemy.x > damX - enemy.width || Math.random() < 0.008) {
                     enemy.dir *= -1;
