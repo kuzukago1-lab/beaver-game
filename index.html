@@ -1,0 +1,1884 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ビーバー・ダム・ビルダーズ タイムアタック版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap');
+
+        body {
+            background-color: #1a1a1a;
+            color: #333;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 5px;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        h2 {
+            color: #fff;
+            margin: 4px 0;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .game-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
+        canvas {
+            border: 3px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: block;
+            margin: 0 auto;
+            background-color: #87CEEB;
+            image-rendering: pixelated;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+        }
+        .mobile-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 6px auto 0 auto;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        .d-pad {
+            display: flex;
+            gap: 12px;
+        }
+        .ctrl-btn {
+            width: 75px;
+            height: 60px;
+            font-size: 24px;
+            font-weight: bold;
+            background-color: #333;
+            color: #ffcc00;
+            border: 3px solid #555;
+            border-radius: 14px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            touch-action: none;
+        }
+        .ctrl-btn:active {
+            background-color: #555;
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.4);
+        }
+        .jump-pad {
+            display: flex;
+        }
+        .jump-btn {
+            width: 110px;
+            height: 60px;
+            font-size: 20px;
+            background-color: #ff5533;
+            color: #fff;
+            border: 3px solid #cc3311;
+        }
+        .jump-btn:active {
+            background-color: #dd4422;
+        }
+
+        .menu-btns {
+            margin-top: 6px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .action-btn {
+            padding: 6px 16px;
+            font-size: 14px;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 800;
+            background-color: #ffcc00;
+            color: #222;
+            border: 2px solid #333;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            outline: none;
+        }
+        .action-btn:hover {
+            background-color: #ffdd33;
+        }
+        .reset-btn {
+            background-color: #cc4444;
+            color: #fff;
+        }
+        .reset-btn:hover {
+            background-color: #dd5555;
+        }
+        #rankingModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95);
+            border: 3px solid #ffcc00;
+            border-radius: 12px;
+            padding: 20px;
+            color: #fff;
+            width: 320px;
+            max-width: 90%;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+        #rankingModal h3 {
+            margin-top: 0;
+            color: #ffcc00;
+            font-weight: 800;
+        }
+        #rankingList {
+            text-align: left;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            background: #2a2a2a;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: 800;
+        }
+        .ranking-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 2px;
+        }
+        .info {
+            margin-top: 4px;
+            font-size: 11px;
+            background: #f0f0f0;
+            color: #222;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            max-width: 800px;
+            font-weight: 800;
+        }
+        #nameInput {
+            padding: 6px;
+            font-size: 16px;
+            width: 140px;
+            text-align: center;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+    <h2>🦫 ビーバー・ダム・ビルダーズ タイムアタック</h2>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    </div>
+    
+    <!-- スマホ対応コントロールボタン（左側に左右移動、右側にジャンプ） -->
+    <div class="mobile-controls">
+        <div class="d-pad">
+            <button class="ctrl-btn" id="leftBtn">◀</button>
+            <button class="ctrl-btn" id="rightBtn">▶</button>
+        </div>
+        <div class="jump-pad">
+            <button class="ctrl-btn jump-btn" id="jumpBtn">▲ ジャンプ</button>
+        </div>
+    </div>
+
+    <div class="menu-btns">
+        <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
+        <button class="action-btn" id="rankingBtn" onclick="openRankingModal()">🏆 ランキングを見る</button>
+    </div>
+    
+    <div class="info">
+        ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！
+    </div>
+
+    <!-- ランキング＆名前登録モーダル -->
+    <div id="rankingModal">
+        <h3 id="modalTitle">🏆 タイムアタック ランキング</h3>
+        <div id="nameEntryArea" style="margin-bottom: 10px; display:none;">
+            <p style="font-size: 13px; margin: 4px 0;">お名前を入力してください:</p>
+            <input type="text" id="nameInput" maxlength="10" placeholder="なまえ">
+            <button class="action-btn" onclick="saveScore()">登録</button>
+        </div>
+        <div id="rankingList"></div>
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <button class="action-btn reset-btn" onclick="resetRanking()">🗑️ リセット</button>
+            <button class="action-btn" onclick="closeRankingModal()">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playJumpSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function playWoodSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playBuildSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08);
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.25);
+        }
+
+        function playDamageSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.25);
+        }
+
+        function playHealSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.06);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime + idx * 0.06);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.06 + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + idx * 0.06);
+                osc.stop(audioCtx.currentTime + idx * 0.06 + 0.12);
+            });
+        }
+
+        let bgmTimer = 0;
+        let bgmStep = 0;
+        const melodyNotes = [
+            587.33, 659.25, 587.33, 659.25, 392.00, 392.00,
+            587.33, 659.25, 783.99, 659.25, 440.00, 440.00
+        ];
+
+        function updateBGM() {
+            if (!timerRunning || gameClear || gameOver) return;
+            bgmTimer++;
+            if (bgmTimer >= 12) {
+                bgmTimer = 0;
+                let freq = melodyNotes[bgmStep % melodyNotes.length];
+                playBgmNote(freq, (bgmStep % 6 >= 4) ? 0.15 : 0.08);
+                bgmStep++;
+            }
+        }
+
+        function playBgmNote(freq, duration) {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let woodCount = 0;
+        let damProgress = 0;
+        const maxDam = 100;
+        let hp = 100;
+        const maxHp = 100;
+        let gameOver = false;
+        let gameClear = false;
+        let invincibilityTimer = 0;
+        let deliverTimer = 0;
+
+        let startTime = 0;
+        let elapsedTime = 0;
+        let penaltyTime = 0;
+        let timerRunning = false;
+        let finalTimeString = "";
+        let scoreRegistered = false;
+
+        let clearTimer = 0;
+        const maxClearTime = 360;
+
+        let startTextTimer = 0;
+        let showStartText = false;
+
+        let fireworks = [];
+        let crackers = [];
+        let healEffects = [];
+        let penaltyEffects = [];
+        let buildSparkles = [];
+
+        let carrots = [];
+        let carrotSpawnTimer = 0;
+
+        let clouds = [
+            { x: 100, y: 50, speed: 0.2, scale: 1.0 },
+            { x: 450, y: 80, speed: 0.15, scale: 1.3 },
+            { x: 900, y: 40, speed: 0.25, scale: 0.8 },
+            { x: 1400, y: 70, speed: 0.18, scale: 1.2 },
+            { x: 1850, y: 50, speed: 0.22, scale: 0.9 },
+        ];
+
+        let beaver = {
+            x: 100,
+            y: 220,
+            width: 75,
+            height: 75,
+            vx: 0,
+            vy: 0,
+            baseSpeed: 4.5,
+            baseJumpForce: -11,
+            gravity: 0.5,
+            isGrounded: false,
+            facing: 1,
+            rotation: 0,
+            walkTimer: 0,
+            blinkTimer: 0,
+            isBlinking: false
+        };
+
+        const damX = 1800;
+        const worldWidth = 2200;
+
+        // 🦫 ダムの右側で待つビーバーの子どもたち（3匹）
+        let babyBeavers = [
+            { x: 1880, y: 262, vy: 0, vx: 0.8, facing: 1, walkTimer: 0, blinkTimer: 10, isBlinking: false, cheerText: "わーい！" },
+            { x: 1965, y: 262, vy: 0, vx: -0.6, facing: -1, walkTimer: 2, blinkTimer: 60, isBlinking: false, cheerText: "やったー！" },
+            { x: 2050, y: 262, vy: 0, vx: 0.7, facing: 1, walkTimer: 4, blinkTimer: 110, isBlinking: false, cheerText: "おうちだ！" }
+        ];
+
+        let keys = {};
+        window.addEventListener("keydown", (e) => {
+            initAudio();
+            keys[e.code] = true;
+        });
+        window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+        function setupTouchButton(id, code) {
+            const btn = document.getElementById(id);
+            btn.addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); keys[code] = true; });
+            btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[code] = false; });
+            btn.addEventListener("mousedown", (e) => { initAudio(); keys[code] = true; });
+            btn.addEventListener("mouseup", (e) => { keys[code] = false; });
+            btn.addEventListener("mouseleave", (e) => { keys[code] = false; });
+        }
+
+        setupTouchButton("leftBtn", "ArrowLeft");
+        setupTouchButton("rightBtn", "ArrowRight");
+        setupTouchButton("jumpBtn", "Space");
+
+        let woods = [
+            { x: 400, y: 275, collected: false, respawnTimer: 0 },
+            { x: 950, y: 195, collected: false, respawnTimer: 0 },
+            { x: 1350, y: 275, collected: false, respawnTimer: 0 },
+            { x: 1700, y: 185, collected: false, respawnTimer: 0 },
+        ];
+
+        let rocks = [
+            { x: 580, y: 245, width: 75, height: 55, type: 1 },
+            { x: 1030, y: 235, width: 85, height: 65, type: 2 },
+            { x: 1480, y: 225, width: 90, height: 75, type: 3 }
+        ];
+
+        let enemies = [
+            { x: 500, y: 275, width: 44, height: 25, speed: 2.5, dir: 1, blinkTimer: 0, isBlinking: false },
+            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5, dir: -1, blinkTimer: 0, isBlinking: false },
+            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0, dir: 1, blinkTimer: 0, isBlinking: false }
+        ];
+
+        let cameraX = 0;
+
+        function formatTime(ms) {
+            let totalSec = Math.floor(ms / 1000);
+            let min = Math.floor(totalSec / 60);
+            let sec = totalSec % 60;
+            let millis = Math.floor((ms % 1000) / 10);
+            return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(millis).padStart(2, '0')}`;
+        }
+
+        function getRanking() {
+            let data = localStorage.getItem("beaver_ranking");
+            return data ? JSON.parse(data) : [];
+        }
+
+        function openRankingModal(showEntry = false) {
+            let ranking = getRanking();
+            let listHtml = "";
+            if (ranking.length === 0) {
+                listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
+            } else {
+                ranking.forEach((r, index) => {
+                    listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
+                });
+            }
+            document.getElementById("rankingList").innerHTML = listHtml;
+            document.getElementById("nameEntryArea").style.display = showEntry ? "block" : "none";
+            document.getElementById("modalTitle").innerText = showEntry ? "🎉 ランクインおめでとう！" : "🏆 タイムアタック ランキング";
+            document.getElementById("rankingModal").style.display = "block";
+        }
+
+        function closeRankingModal() {
+            document.getElementById("rankingModal").style.display = "none";
+            document.activeElement.blur();
+        }
+
+        function resetRanking() {
+            if (confirm("本当にすべてのランキング記録をリセットしますか？")) {
+                localStorage.removeItem("beaver_ranking");
+                openRankingModal(false);
+            }
+        }
+
+        function saveScore() {
+            let nameInput = document.getElementById("nameInput").value.trim();
+            let playerName = nameInput !== "" ? nameInput : "名無しビーバー";
+            
+            let now = new Date();
+            let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            let ranking = getRanking();
+            let totalScoreMs = elapsedTime + penaltyTime;
+            ranking.push({
+                name: playerName,
+                timeMs: totalScoreMs,
+                timeStr: finalTimeString,
+                date: dateStr
+            });
+
+            ranking.sort((a, b) => a.timeMs - b.timeMs);
+            ranking = ranking.slice(0, 10);
+
+            localStorage.setItem("beaver_ranking", JSON.stringify(ranking));
+            scoreRegistered = true;
+            openRankingModal(false);
+        }
+
+        function restartGame() {
+            closeRankingModal();
+            document.activeElement.blur();
+
+            woodCount = 0;
+            damProgress = 0;
+            hp = 100;
+            gameOver = false;
+            gameClear = false;
+            invincibilityTimer = 0;
+            deliverTimer = 0;
+            clearTimer = 0;
+            fireworks = [];
+            crackers = [];
+            healEffects = [];
+            penaltyEffects = [];
+            buildSparkles = [];
+            carrots = [];
+            carrotSpawnTimer = 0;
+            
+            beaver.x = 100;
+            beaver.y = 220;
+            beaver.vx = 0;
+            beaver.vy = 0;
+            beaver.isGrounded = false;
+            beaver.facing = 1;
+            beaver.rotation = 0;
+            beaver.walkTimer = 0;
+            beaver.blinkTimer = 0;
+            beaver.isBlinking = false;
+
+            // 子ビーバーの位置リセット
+            babyBeavers[0].x = 1880; babyBeavers[0].y = 262; babyBeavers[0].vy = 0;
+            babyBeavers[1].x = 1965; babyBeavers[1].y = 262; babyBeavers[1].vy = 0;
+            babyBeavers[2].x = 2050; babyBeavers[2].y = 262; babyBeavers[2].vy = 0;
+
+            timerRunning = false;
+            elapsedTime = 0;
+            penaltyTime = 0;
+            scoreRegistered = false;
+            showStartText = false;
+            startTextTimer = 0;
+            bgmStep = 0;
+            bgmTimer = 0;
+
+            woods.forEach(w => { w.collected = false; w.respawnTimer = 0; });
+        }
+
+        function drawSparkleStar(x, y, size, alpha) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = "#ffffaa";
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.quadraticCurveTo(0, 0, size, 0);
+            ctx.quadraticCurveTo(0, 0, 0, size);
+            ctx.quadraticCurveTo(0, 0, -size, 0);
+            ctx.quadraticCurveTo(0, 0, 0, -size);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawCloud(x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.arc(18, -8, 22, 0, Math.PI * 2);
+            ctx.arc(40, 0, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawCarrot(x, y, bobOffset) {
+            ctx.save();
+            ctx.translate(x, y + bobOffset);
+
+            ctx.fillStyle = "#228B22";
+            ctx.strokeStyle = "#145214";
+            ctx.lineWidth = 1.5;
+            
+            ctx.beginPath();
+            ctx.ellipse(24, 6, 8, 3, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(26, 11, 8, 3, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#ff6600";
+            ctx.strokeStyle = "#802b00";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(2, 16);
+            ctx.quadraticCurveTo(14, 4, 22, 6);
+            ctx.quadraticCurveTo(25, 11, 22, 16);
+            ctx.quadraticCurveTo(12, 19, 2, 16);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = "#cc4400";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(10, 12); ctx.lineTo(10, 16);
+            ctx.moveTo(15, 9);  ctx.lineTo(15, 14);
+            ctx.moveTo(19, 11); ctx.lineTo(19, 15);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawLog(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const outlineColor = "#2b1303";
+            const logWidth = 40;
+            const logHeight = 22;
+
+            ctx.fillStyle = "#8B4513";
+            ctx.beginPath();
+            ctx.roundRect(0, 0, logWidth, logHeight, 6);
+            ctx.fill();
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.strokeStyle = "#5a2d0c";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(8, 5); ctx.lineTo(32, 5);
+            ctx.moveTo(12, 17); ctx.lineTo(28, 17);
+            ctx.stroke();
+
+            let cx = logWidth;
+            let cy = logHeight / 2;
+            let rx = 5;
+            let ry = logHeight / 2;
+
+            ctx.fillStyle = "#e3b782";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.strokeStyle = "#b88650";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx * 0.6, ry * 0.6, 0, 0, Math.PI * 2);
+            ctx.ellipse(cx, cy, rx * 0.3, ry * 0.3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = "#8b5a2b";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawRock(rock) {
+            ctx.save();
+            ctx.translate(rock.x, rock.y);
+
+            const outlineColor = "#2c3034";
+            const baseColor = "#71797e";
+            const highlightColor = "#939b9e";
+            const shadowColor = "#4a4f52";
+
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = outlineColor;
+
+            ctx.fillStyle = baseColor;
+            ctx.beginPath();
+            if (rock.type === 1) {
+                ctx.moveTo(5, rock.height);
+                ctx.lineTo(0, rock.height * 0.5);
+                ctx.lineTo(12, rock.height * 0.1);
+                ctx.lineTo(rock.width * 0.6, 0);
+                ctx.lineTo(rock.width - 5, rock.height * 0.3);
+                ctx.lineTo(rock.width, rock.height);
+            } else if (rock.type === 2) {
+                ctx.moveTo(8, rock.height);
+                ctx.lineTo(2, rock.height * 0.6);
+                ctx.lineTo(rock.width * 0.35, 3);
+                ctx.lineTo(rock.width * 0.7, 0);
+                ctx.lineTo(rock.width - 2, rock.height * 0.4);
+                ctx.lineTo(rock.width - 6, rock.height);
+            } else {
+                ctx.moveTo(6, rock.height);
+                ctx.lineTo(0, rock.height * 0.7);
+                ctx.lineTo(15, rock.height * 0.25);
+                ctx.lineTo(rock.width * 0.4, 0);
+                ctx.lineTo(rock.width * 0.75, rock.height * 0.15);
+                ctx.lineTo(rock.width, rock.height * 0.5);
+                ctx.lineTo(rock.width - 4, rock.height);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = highlightColor;
+            ctx.beginPath();
+            if (rock.type === 1) {
+                ctx.moveTo(15, rock.height * 0.2);
+                ctx.lineTo(rock.width * 0.5, 8);
+                ctx.lineTo(rock.width * 0.6, rock.height * 0.5);
+                ctx.lineTo(15, rock.height * 0.6);
+            } else if (rock.type === 2) {
+                ctx.moveTo(rock.width * 0.35, 12);
+                ctx.lineTo(rock.width * 0.65, 8);
+                ctx.lineTo(rock.width * 0.7, rock.height * 0.5);
+                ctx.lineTo(rock.width * 0.3, rock.height * 0.6);
+            } else {
+                ctx.moveTo(18, rock.height * 0.3);
+                ctx.lineTo(rock.width * 0.4, 8);
+                ctx.lineTo(rock.width * 0.7, rock.height * 0.35);
+                ctx.lineTo(rock.width * 0.4, rock.height * 0.55);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = shadowColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (rock.type === 1) {
+                ctx.moveTo(25, rock.height * 0.4); ctx.lineTo(rock.width * 0.7, rock.height * 0.8);
+            } else if (rock.type === 2) {
+                ctx.moveTo(rock.width * 0.4, rock.height * 0.4); ctx.lineTo(rock.width * 0.8, rock.height * 0.85);
+            } else {
+                ctx.moveTo(rock.width * 0.3, rock.height * 0.5); ctx.lineTo(rock.width * 0.65, rock.height * 0.9);
+                ctx.moveTo(rock.width * 0.2, rock.height * 0.3); ctx.lineTo(rock.width * 0.1, rock.height * 0.7);
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = "#3b7a30";
+            ctx.beginPath();
+            ctx.ellipse(10, rock.height - 4, 7, 3.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(rock.width - 12, rock.height - 5, 9, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 🦫 子ビーバー描画関数（メインキャラのミニチュア版）
+        function drawBabyBeaver(baby) {
+            ctx.save();
+            ctx.translate(baby.x, baby.y);
+            ctx.scale(0.52, 0.52); // 約半分のミニサイズ！
+
+            const outlineColor = "#2b1303";
+            const strokeWidth = 3;
+            const bodyColor = "#c46b23"; // 子どもらしく少し明るめの可愛い茶色
+            const headColor = "#d1762c";
+            const tailColor = "#6e472b";
+            const legColor = "#8f4614";
+            const armColor = "#d1762c";
+
+            let hipSway = Math.sin(baby.walkTimer) * 3;
+            let tailWag = Math.cos(baby.walkTimer * 2) * 0.15;
+
+            // しっぽ
+            ctx.save();
+            ctx.translate(0, hipSway);
+            let tailX = (baby.facing === 1) ? 2 : 68;
+            ctx.fillStyle = tailColor;
+            ctx.beginPath();
+            ctx.ellipse(tailX, 48 + (hipSway * 0.5), 33, 12, 0.2 + tailWag, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke();
+            ctx.restore();
+
+            // 足
+            ctx.fillStyle = legColor;
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+
+            ctx.beginPath();
+            ctx.ellipse(24, 62 + (hipSway > 0 ? hipSway : 0), 7, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(46, 62 + (hipSway < 0 ? -hipSway : 0), 7, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(0, hipSway);
+
+            // 体・お腹
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(35, 42, 20, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#e39c59";
+            ctx.beginPath();
+            ctx.ellipse(35, 43, 12, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 頭・耳
+            ctx.fillStyle = headColor;
+            ctx.beginPath();
+            ctx.arc(35, 22, 17, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = legColor;
+            ctx.beginPath(); ctx.arc(21, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(49, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // 目（クリア時は満面の笑み ^ ^ ）
+            ctx.fillStyle = "#1a0c04";
+            ctx.strokeStyle = "#1a0c04";
+            if (gameClear) {
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(25, 20); ctx.lineTo(29, 15); ctx.lineTo(33, 20);
+                ctx.moveTo(37, 20); ctx.lineTo(41, 15); ctx.lineTo(45, 20);
+                ctx.stroke();
+            } else if (baby.isBlinking) {
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(26, 18); ctx.lineTo(32, 18);
+                ctx.moveTo(38, 18); ctx.lineTo(44, 18);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(29, 18, 2.8, 0, Math.PI * 2);
+                ctx.arc(41, 18, 2.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 鼻・口・前歯
+            ctx.fillStyle = "#f2c185";
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+            ctx.beginPath();
+            ctx.ellipse(35, 25, 9, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#111";
+            ctx.beginPath(); ctx.arc(35, 22, 2.5, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(33, 27, 4, 6);
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(33, 27, 4, 6);
+
+            // ヒゲ
+            ctx.strokeStyle = "#2b1303";
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(26, 24); ctx.lineTo(12, 27);
+            ctx.moveTo(26, 27); ctx.lineTo(12, 33);
+            ctx.moveTo(44, 24); ctx.lineTo(58, 27);
+            ctx.moveTo(44, 27); ctx.lineTo(58, 33);
+            ctx.stroke();
+
+            // 腕（クリア時はバンザイ！）
+            ctx.fillStyle = armColor;
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+            if (gameClear) {
+                ctx.beginPath();
+                ctx.ellipse(15, 28, 5, 6, -0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(55, 28, 5, 6, 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.ellipse(18, 42, 5, 4, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(52, 42, 5, 4, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            ctx.restore();
+            ctx.restore();
+
+            // クリア時は頭上に喜びの吹き出しテキストを表示
+            if (gameClear) {
+                ctx.save();
+                ctx.font = "bold 12px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ffff66";
+                ctx.strokeStyle = "#2b1303";
+                ctx.lineWidth = 3;
+                ctx.strokeText(baby.cheerText, baby.x + 18, baby.y - 6);
+                ctx.fillText(baby.cheerText, baby.x + 18, baby.y - 6);
+                ctx.restore();
+            }
+        }
+
+        function drawBeaver(beaver) {
+            ctx.save();
+            ctx.translate(beaver.x + beaver.width / 2, beaver.y + beaver.height / 2);
+            ctx.rotate(beaver.rotation);
+            ctx.translate(-beaver.width / 2, -beaver.height / 2);
+
+            let isDamagedFlash = (invincibilityTimer > 0 && Math.floor(invincibilityTimer / 4) % 2 === 0);
+            if (invincibilityTimer > 0 && !isDamagedFlash) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            const outlineColor = "#2b1303";
+            const strokeWidth = 2.5;
+
+            const bodyColor = isDamagedFlash ? "#ff2222" : "#a85311";
+            const headColor = isDamagedFlash ? "#ff4444" : "#b55b14";
+            const tailColor = isDamagedFlash ? "#cc1111" : "#5c3a21";
+            const legColor = isDamagedFlash ? "#aa1111" : "#7a380a";
+            const armColor = isDamagedFlash ? "#cc2222" : "#b55b14";
+
+            let hipSway = 0;
+            let tailWag = 0;
+            if (beaver.isGrounded && beaver.vx !== 0) {
+                hipSway = Math.sin(beaver.walkTimer) * 3;
+                tailWag = Math.cos(beaver.walkTimer * 2) * 0.15;
+            }
+
+            ctx.save();
+            ctx.translate(0, hipSway);
+            let tailX = (beaver.facing === 1) ? 2 : 68;
+            ctx.fillStyle = tailColor;
+            ctx.beginPath();
+            ctx.ellipse(tailX, 48 + (hipSway * 0.5), 33, 12, 0.2 + tailWag, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = legColor;
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = strokeWidth;
+
+            ctx.beginPath();
+            ctx.ellipse(24, 62 + (hipSway > 0 ? hipSway : 0), 7, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(46, 62 + (hipSway < 0 ? -hipSway : 0), 7, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(0, hipSway);
+
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(35, 42, 20, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = isDamagedFlash ? "#ff7777" : "#d08542";
+            ctx.beginPath();
+            ctx.ellipse(35, 43, 12, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = headColor;
+            ctx.beginPath();
+            ctx.arc(35, 22, 17, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = legColor;
+            ctx.beginPath(); ctx.arc(21, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(49, 10, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = "#1a0c04";
+            if (beaver.isBlinking) {
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(26, 18); ctx.lineTo(32, 18);
+                ctx.moveTo(38, 18); ctx.lineTo(44, 18);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(29, 18, 2.5, 0, Math.PI * 2);
+                ctx.arc(41, 18, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "#e8b070";
+            ctx.beginPath();
+            ctx.ellipse(35, 25, 9, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#111";
+            ctx.beginPath(); ctx.arc(35, 22, 2.5, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(33, 27, 4, 6);
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(33, 27, 4, 6);
+
+            ctx.strokeStyle = "#2b1303";
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = "round";
+
+            let leftWhiskers = [
+                { startX: 27, startY: 23, cpX: 18, cpY: 24, endX: 10, endY: 28 },
+                { startX: 26, startY: 25, cpX: 17, cpY: 27, endX: 9,  endY: 32 },
+                { startX: 26, startY: 27, cpX: 17, cpY: 30, endX: 10, endY: 36 },
+                { startX: 27, startY: 29, cpX: 18, cpY: 33, endX: 12, endY: 40 }
+            ];
+            leftWhiskers.forEach(w => {
+                ctx.beginPath();
+                ctx.moveTo(w.startX, w.startY);
+                ctx.quadraticCurveTo(w.cpX, w.cpY, w.endX, w.endY);
+                ctx.stroke();
+            });
+
+            let rightWhiskers = [
+                { startX: 43, startY: 23, cpX: 52, cpY: 24, endX: 60, endY: 28 },
+                { startX: 44, startY: 25, cpX: 53, cpY: 27, endX: 61, endY: 32 },
+                { startX: 44, startY: 27, cpX: 53, cpY: 30, endX: 60, endY: 36 },
+                { startX: 43, startY: 29, cpX: 52, cpY: 33, endX: 58, endY: 40 }
+            ];
+            rightWhiskers.forEach(w => {
+                ctx.beginPath();
+                ctx.moveTo(w.startX, w.startY);
+                ctx.quadraticCurveTo(w.cpX, w.cpY, w.endX, w.endY);
+                ctx.stroke();
+            });
+
+            if (woodCount === 0) {
+                ctx.fillStyle = armColor;
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = strokeWidth;
+
+                ctx.beginPath();
+                ctx.ellipse(18, 42, 5, 4, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(52, 42, 5, 4, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            if (woodCount >= 1) {
+                ctx.save();
+                ctx.translate(14, 24);
+                ctx.fillStyle = "#8B4513";
+                ctx.beginPath();
+                ctx.roundRect(0, 0, 42, 16, 5);
+                ctx.fill();
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = "#e3b782";
+                ctx.beginPath();
+                ctx.ellipse(42, 8, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.fillStyle = armColor;
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = strokeWidth;
+
+                ctx.beginPath();
+                ctx.ellipse(22, 43, 5, 6, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(46, 36, 5, 6, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } 
+            
+            if (woodCount >= 2) {
+                let stackCount = woodCount - 1; 
+                for (let i = 0; i < stackCount; i++) {
+                    let boxY = -6 - (i * 12); 
+                    ctx.save();
+                    ctx.translate(17, boxY);
+                    ctx.fillStyle = "#8B4513";
+                    ctx.beginPath();
+                    ctx.roundRect(0, 0, 36, 11, 4);
+                    ctx.fill();
+                    ctx.strokeStyle = outlineColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    ctx.fillStyle = "#e3b782";
+                    ctx.beginPath();
+                    ctx.ellipse(36, 5.5, 3, 5.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function drawHedgehog(enemy) {
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+
+            if (enemy.dir === -1) {
+                ctx.translate(44, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.fillStyle = "#8c6239";
+            ctx.beginPath();
+            ctx.ellipse(-2, 15, 5, 2.5, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#3b2817";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = "#4a3b32";
+            ctx.beginPath();
+            ctx.moveTo(-4, 12);
+            ctx.lineTo(-8, 3);
+            ctx.lineTo(1, 10);
+            ctx.fill();
+
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(2 + i * 6, 10);
+                ctx.lineTo(5 + i * 6, -5);
+                ctx.lineTo(9 + i * 6, 10);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "#8c6239";
+            ctx.beginPath();
+            ctx.ellipse(20, 14, 18, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#3b2817";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = "#d4a373";
+            ctx.beginPath();
+            ctx.arc(32, 13, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#111";
+            if (enemy.isBlinking) {
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(32.5, 10.5); ctx.lineTo(35.5, 10.5);
+                ctx.moveTo(36.5, 13.5); ctx.lineTo(39.5, 13.5);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(34, 11, 1.5, 0, Math.PI * 2);
+                ctx.arc(38, 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function spawnFirework() {
+            let fx = Math.random() * canvas.width;
+            let fy = 50 + Math.random() * 150;
+            let colors = ["#ff3333", "#ffff33", "#33ffff", "#ff33ff", "#33ff33", "#ff9900"];
+            let chosenColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            let particleCount = 35;
+            for (let i = 0; i < particleCount; i++) {
+                let angle = (Math.PI * 2 / particleCount) * i;
+                let speed = 2 + Math.random() * 4;
+                fireworks.push({
+                    x: fx,
+                    y: fy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: chosenColor,
+                    alpha: 1.0,
+                    life: 50 + Math.random() * 30
+                });
+            }
+        }
+
+        function spawnCrackerBurst() {
+            let cx = Math.random() * canvas.width;
+            let cy = canvas.height - 20;
+            let colors = ["#ff3366", "#33ccff", "#ffcc00", "#66ff66", "#cc66ff", "#ffffff"];
+
+            for (let i = 0; i < 20; i++) {
+                crackers.push({
+                    x: cx,
+                    y: cy,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: -7 - Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: 8 + Math.random() * 6,
+                    rotation: Math.random() * Math.PI,
+                    vRot: (Math.random() - 0.5) * 0.3,
+                    gravity: 0.25,
+                    life: 80
+                });
+            }
+        }
+
+        function spawnRandomCarrot() {
+            if (carrots.length >= 2) return;
+            let rx = 250 + Math.random() * (damX - 350);
+            let ry = (Math.random() < 0.6) ? 272 : (190 + Math.random() * 40);
+            carrots.push({
+                x: rx,
+                y: ry,
+                width: 32,
+                height: 20,
+                timer: 0,
+                life: 600
+            });
+        }
+
+        // 🦫 子ビーバーたちの動きを更新する関数
+        function updateBabyBeavers() {
+            let maxBlocks = 10;
+            let currentBlocks = Math.floor((damProgress / 100) * maxBlocks);
+            let blockHeight = 10;
+            let totalWoodHeight = currentBlocks * blockHeight;
+            let waterOffset = (damProgress > 0) ? 6 : 0;
+            let currentWaterHeight = Math.max(0, totalWoodHeight - waterOffset);
+            
+            // 子ビーバーが立つ高さ（水がある場合は水面にぷかぷか浮かぶ）
+            let targetBaseY = (currentWaterHeight > 10) ? (300 - currentWaterHeight - 25) : 262;
+
+            babyBeavers.forEach((baby, index) => {
+                // まばたき
+                baby.blinkTimer++;
+                if (!baby.isBlinking && baby.blinkTimer > 100 + index * 30) {
+                    baby.isBlinking = true;
+                    baby.blinkTimer = 0;
+                } else if (baby.isBlinking && baby.blinkTimer > 12) {
+                    baby.isBlinking = false;
+                    baby.blinkTimer = 0;
+                }
+
+                if (gameClear) {
+                    // 🎉 完成後はピョンピョン高くはねて大喜び！
+                    baby.x += baby.vx * 1.8;
+                    if (baby.x < damX + 55) { baby.x = damX + 55; baby.vx = Math.abs(baby.vx); baby.facing = 1; }
+                    if (baby.x > worldWidth - 65) { baby.x = worldWidth - 65; baby.vx = -Math.abs(baby.vx); baby.facing = -1; }
+
+                    baby.vy += 0.45; // 重力
+                    baby.y += baby.vy;
+                    baby.walkTimer += 0.35;
+
+                    if (baby.y >= targetBaseY) {
+                        baby.y = targetBaseY;
+                        // 元気よくジャンプ！
+                        baby.vy = -7.5 - (index % 2) * 2.0; 
+                    }
+                } else {
+                    // 普段はダムの右側でゆっくりチョロチョロ動き回る
+                    baby.x += baby.vx;
+                    baby.walkTimer += 0.15;
+
+                    // ダムの壁(damX + 45)と画面右端(worldWidth - 60)の間を行き来
+                    if (baby.x < damX + 55) {
+                        baby.x = damX + 55;
+                        baby.vx = Math.abs(baby.vx);
+                        baby.facing = 1;
+                    } else if (baby.x > worldWidth - 65) {
+                        baby.x = worldWidth - 65;
+                        baby.vx = -Math.abs(baby.vx);
+                        baby.facing = -1;
+                    } else if (Math.random() < 0.01) {
+                        // たまに気まぐれに方向転換
+                        baby.vx *= -1;
+                        baby.facing = (baby.vx > 0) ? 1 : -1;
+                    }
+
+                    // 水位に合わせてぷかぷか追従
+                    let bobbing = (currentWaterHeight > 10) ? Math.sin(Date.now() * 0.005 + index) * 2 : 0;
+                    baby.y += ((targetBaseY + bobbing) - baby.y) * 0.15;
+                }
+            });
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            updateBGM();
+            updateBabyBeavers();
+
+            if (Math.random() < 0.35) {
+                buildSparkles.push({
+                    x: damX - 10 + Math.random() * 60,
+                    y: 295 - Math.random() * 40,
+                    vy: -0.6 - Math.random() * 1.2,
+                    size: 4 + Math.random() * 5,
+                    alpha: 1.0,
+                    life: 40 + Math.random() * 30
+                });
+            }
+            buildSparkles.forEach(sp => {
+                sp.y += sp.vy;
+                sp.alpha -= 1 / sp.life;
+            });
+            buildSparkles = buildSparkles.filter(sp => sp.alpha > 0);
+
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed;
+                if (cloud.x < -100) {
+                    cloud.x = worldWidth + 100;
+                }
+            });
+
+            beaver.blinkTimer++;
+            if (!beaver.isBlinking && beaver.blinkTimer > 120 + Math.random() * 180) {
+                beaver.isBlinking = true;
+                beaver.blinkTimer = 0;
+            } else if (beaver.isBlinking && beaver.blinkTimer > 12) {
+                beaver.isBlinking = false;
+                beaver.blinkTimer = 0;
+            }
+
+            if (!timerRunning && !gameClear && (keys["ArrowLeft"] || keys["ArrowRight"] || keys["Space"] || keys["KeyA"] || keys["KeyD"])) {
+                timerRunning = true;
+                startTime = Date.now();
+                showStartText = true;
+                startTextTimer = 0;
+            }
+
+            if (showStartText) {
+                startTextTimer++;
+                if (startTextTimer > 75) {
+                    showStartText = false;
+                }
+            }
+
+            if (timerRunning && !gameClear) {
+                elapsedTime = Date.now() - startTime;
+            }
+
+            if (gameClear) {
+                if (clearTimer === 0) {
+                    timerRunning = false;
+                    finalTimeString = formatTime(elapsedTime + penaltyTime);
+                    if (!scoreRegistered) {
+                        setTimeout(() => openRankingModal(true), 1000);
+                    }
+                }
+
+                if (clearTimer < maxClearTime) {
+                    clearTimer++;
+                    if (Math.random() < 0.12) spawnFirework();
+                    if (Math.random() < 0.18) spawnCrackerBurst();
+                }
+
+                fireworks.forEach(fw => {
+                    fw.x += fw.vx;
+                    fw.y += fw.vy;
+                    fw.vy += 0.05;
+                    fw.alpha -= 1 / fw.life;
+                });
+                fireworks = fireworks.filter(fw => fw.alpha > 0);
+
+                crackers.forEach(c => {
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    c.vy += c.gravity;
+                    c.rotation += c.vRot;
+                    c.life--;
+                });
+                crackers = crackers.filter(c => c.life > 0);
+
+                return;
+            }
+
+            if (invincibilityTimer > 0) { invincibilityTimer--; }
+
+            carrotSpawnTimer++;
+            if (carrotSpawnTimer >= 300) {
+                carrotSpawnTimer = 0;
+                if (Math.random() < 0.75) {
+                    spawnRandomCarrot();
+                }
+            }
+
+            carrots.forEach(c => {
+                c.timer++;
+                if (beaver.x < c.x + c.width && beaver.x + beaver.width > c.x &&
+                    beaver.y < c.y + c.height && beaver.y + beaver.height > c.y) {
+                    let healed = Math.min(maxHp - hp, 30);
+                    hp = Math.min(maxHp, hp + 30);
+                    c.collected = true;
+                    playHealSound();
+                    healEffects.push({
+                        x: beaver.x + 15,
+                        y: beaver.y - 10,
+                        text: healed > 0 ? `+${healed} HP!` : "MAX HP!",
+                        alpha: 1.0
+                    });
+                }
+            });
+            carrots = carrots.filter(c => !c.collected && c.timer < c.life);
+
+            healEffects.forEach(he => {
+                he.y -= 1.2;
+                he.alpha -= 0.02;
+            });
+            healEffects = healEffects.filter(he => he.alpha > 0);
+
+            penaltyEffects.forEach(pe => {
+                pe.y -= 1.2;
+                pe.alpha -= 0.02;
+            });
+            penaltyEffects = penaltyEffects.filter(pe => pe.alpha > 0);
+
+            let weightFactor = 1.0 - (woodCount * 0.1); 
+            let currentSpeed = beaver.baseSpeed * weightFactor;
+            let currentJumpForce = beaver.baseJumpForce * (1.0 - (woodCount * 0.04));
+
+            if (keys["ArrowLeft"] || keys["KeyA"]) {
+                beaver.vx = -currentSpeed; beaver.facing = -1;
+            } else if (keys["ArrowRight"] || keys["KeyD"]) {
+                beaver.vx = currentSpeed; beaver.facing = 1;
+            } else { beaver.vx = 0; }
+
+            if (beaver.isGrounded && beaver.vx !== 0) {
+                beaver.walkTimer += 0.25;
+            } else {
+                beaver.walkTimer = 0;
+            }
+
+            if ((keys["ArrowUp"] || keys["Space"] || keys["KeyW"]) && beaver.isGrounded) {
+                beaver.vy = currentJumpForce; 
+                beaver.isGrounded = false;
+                playJumpSound();
+            }
+
+            beaver.vy += beaver.gravity;
+            
+            if (!beaver.isGrounded) {
+                beaver.rotation += 0.15 * beaver.facing;
+            } else {
+                beaver.rotation = 0;
+            }
+
+            beaver.x += beaver.vx;
+            let blockWidth = 40;
+            let maxBlocks = 10;
+            let currentBlocks = Math.floor((damProgress / 100) * maxBlocks);
+            let blockHeight = 10;
+            
+            if (currentBlocks > 0) {
+                let damTopY = 300 - (currentBlocks * blockHeight);
+                if (beaver.y + beaver.height > damTopY && beaver.x + beaver.width > damX && beaver.x < damX + blockWidth) {
+                    if (beaver.vx > 0) {
+                        beaver.x = damX - beaver.width;
+                    } else if (beaver.vx < 0) {
+                        beaver.x = damX + blockWidth;
+                    }
+                }
+            }
+
+            beaver.y += beaver.vy;
+
+            const groundY = 300;
+            beaver.isGrounded = false;
+
+            if (beaver.y + beaver.height > groundY) {
+                beaver.y = groundY - beaver.height;
+                beaver.vy = 0;
+                beaver.isGrounded = true;
+            }
+
+            rocks.forEach(rock => {
+                if (beaver.vy >= 0 &&
+                    beaver.x + beaver.width > rock.x + 8 && beaver.x < rock.x + rock.width - 8 &&
+                    beaver.y + beaver.height >= rock.y && beaver.y + beaver.height <= rock.y + 18) {
+                    beaver.y = rock.y - beaver.height;
+                    beaver.vy = 0;
+                    beaver.isGrounded = true;
+                }
+            });
+
+            if (currentBlocks > 0) {
+                let damTopY = 300 - (currentBlocks * blockHeight);
+                if (beaver.vy >= 0 &&
+                    beaver.x + beaver.width > damX && beaver.x < damX + blockWidth &&
+                    beaver.y + beaver.height >= damTopY && beaver.y + beaver.height <= damTopY + 16) {
+                    beaver.y = damTopY - beaver.height;
+                    beaver.vy = 0;
+                    beaver.isGrounded = true;
+                }
+            }
+
+            if (beaver.x < 0) beaver.x = 0;
+            if (beaver.x > worldWidth - beaver.width) beaver.x = worldWidth - beaver.width;
+
+            cameraX = beaver.x - 250;
+            if (cameraX < 0) cameraX = 0;
+            if (cameraX > worldWidth - canvas.width) cameraX = worldWidth - canvas.width;
+
+            woods.forEach(wood => {
+                if (wood.collected) {
+                    wood.respawnTimer++;
+                    if (wood.respawnTimer > 250) {
+                        wood.collected = false; wood.respawnTimer = 0;
+                    }
+                } else {
+                    if (beaver.x < wood.x + 40 && beaver.x + beaver.width > wood.x &&
+                        beaver.y < wood.y + 22 && beaver.y + beaver.height > wood.y) {
+                        wood.collected = true; 
+                        woodCount += 1;
+                        playWoodSound();
+                    }
+                }
+            });
+
+            if (woodCount > 0 && beaver.x < damX + blockWidth && beaver.x + beaver.width > damX) {
+                deliverTimer++;
+                if (deliverTimer >= 18) { 
+                    damProgress = Math.min(maxDam, damProgress + 10);
+                    woodCount -= 1;
+                    deliverTimer = 0;
+                    playBuildSound();
+                    for(let k=0; k<10; k++) {
+                        buildSparkles.push({
+                            x: damX - 10 + Math.random() * 60,
+                            y: 280 - Math.random() * 60,
+                            vy: -1.5 - Math.random() * 2.0,
+                            size: 6 + Math.random() * 6,
+                            alpha: 1.0,
+                            life: 40
+                        });
+                    }
+                    if (damProgress >= maxDam) {
+                        gameClear = true;
+                        for (let i = 0; i < 8; i++) spawnFirework();
+                        for (let i = 0; i < 6; i++) spawnCrackerBurst();
+                    }
+                }
+            } else {
+                deliverTimer = 0;
+            }
+
+            enemies.forEach(enemy => {
+                enemy.x += enemy.speed * enemy.dir;
+                
+                if (enemy.x < 300 || enemy.x > damX - enemy.width || Math.random() < 0.008) {
+                    enemy.dir *= -1;
+                    if (enemy.x > damX - enemy.width) {
+                        enemy.x = damX - enemy.width;
+                    } else if (enemy.x < 300) {
+                        enemy.x = 300;
+                    }
+                }
+
+                enemy.blinkTimer++;
+                if (!enemy.isBlinking && enemy.blinkTimer > 100 + Math.random() * 150) {
+                    enemy.isBlinking = true;
+                    enemy.blinkTimer = 0;
+                } else if (enemy.isBlinking && enemy.blinkTimer > 10) {
+                    enemy.isBlinking = false;
+                    enemy.blinkTimer = 0;
+                }
+
+                if (invincibilityTimer === 0 &&
+                    beaver.x < enemy.x + enemy.width && beaver.x + beaver.width > enemy.x &&
+                    beaver.y < enemy.y + enemy.height && beaver.y + beaver.height > enemy.y) {
+                    hp -= 20;
+                    invincibilityTimer = 60;
+                    penaltyTime += 5000;
+                    playDamageSound();
+                    penaltyEffects.push({
+                        x: beaver.x + 10,
+                        y: beaver.y - 15,
+                        text: "+5s PENALTY!",
+                        alpha: 1.0
+                    });
+                    if (hp <= 0) gameOver = true;
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+
+            clouds.forEach(cloud => {
+                let renderX = cloud.x - (cameraX * 0.3);
+                if (renderX < cameraX - 100) renderX += worldWidth + 200;
+                drawCloud(renderX, cloud.y, cloud.scale);
+            });
+
+            ctx.fillStyle = "#4a8563";
+            ctx.beginPath();
+            ctx.moveTo(cameraX, 300);
+            for (let i = 0; i <= worldWidth; i += 200) {
+                ctx.lineTo(i, 180 + Math.sin(i * 0.005) * 50);
+            }
+            ctx.lineTo(cameraX + canvas.width, 300);
+            ctx.fill();
+
+            ctx.fillStyle = "#2d5a3f";
+            ctx.beginPath();
+            ctx.moveTo(cameraX, 300);
+            for (let i = 0; i <= worldWidth; i += 120) {
+                ctx.lineTo(i, 220 + Math.cos(i * 0.01) * 35);
+            }
+            ctx.lineTo(cameraX + canvas.width, 300);
+            ctx.fill();
+
+            ctx.fillStyle = "#5c4033";
+            ctx.fillRect(0, 300, worldWidth, 100);
+            ctx.fillStyle = "#228B22";
+            ctx.fillRect(0, 300, worldWidth, 15);
+
+            rocks.forEach(rock => {
+                drawRock(rock);
+            });
+
+            woods.forEach(wood => {
+                if (!wood.collected) {
+                    drawLog(wood.x, wood.y);
+                }
+            });
+
+            carrots.forEach(c => {
+                if (c.timer > c.life - 90 && Math.floor(c.timer / 6) % 2 === 0) return;
+                let bobOffset = Math.sin(c.timer * 0.1) * 3;
+                drawCarrot(c.x, c.y, bobOffset);
+            });
+
+            enemies.forEach(enemy => {
+                drawHedgehog(enemy);
+            });
+
+            let blockWidth = 40;
+
+            let pulse = 0.25 + Math.sin(Date.now() * 0.005) * 0.12;
+            let beamGrad = ctx.createLinearGradient(0, 150, 0, 300);
+            beamGrad.addColorStop(0, "rgba(255, 240, 100, 0)");
+            beamGrad.addColorStop(1, `rgba(255, 240, 100, ${pulse})`);
+            ctx.fillStyle = beamGrad;
+            ctx.fillRect(damX - 10, 150, blockWidth + 20, 150);
+
+            ctx.save();
+            ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#ffff66";
+            ctx.strokeStyle = "#331a00";
+            ctx.lineWidth = 3.5;
+            let textX = damX + blockWidth / 2;
+            let textY = 175 + Math.sin(Date.now() * 0.006) * 3;
+            ctx.strokeText("↓ ここにお家を作ろう！！", textX, textY);
+            ctx.fillText("↓ ここにお家を作ろう！！", textX, textY);
+            ctx.restore();
+
+            let maxBlocks = 10;
+            let currentBlocks = Math.floor((damProgress / 100) * maxBlocks);
+            let blockHeight = 10; 
+
+            let totalWoodHeight = currentBlocks * blockHeight;
+            let waterOffset = (damProgress > 0) ? 6 : 0;
+            let currentWaterHeight = Math.max(0, totalWoodHeight - waterOffset);
+            let waterY = 300 - currentWaterHeight;
+
+            for (let i = 0; i < currentBlocks; i++) {
+                let bx = damX;
+                let by = 300 - ((i + 1) * blockHeight);
+                
+                ctx.fillStyle = "#8B4513";
+                ctx.fillRect(bx, by, blockWidth, blockHeight);
+                ctx.strokeStyle = "#3d1c02";
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(bx, by, blockWidth, blockHeight);
+
+                ctx.fillStyle = "#e3b782";
+                ctx.beginPath();
+                ctx.ellipse(bx + blockWidth, by + blockHeight / 2, 2, 3.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            buildSparkles.forEach(sp => {
+                drawSparkleStar(sp.x, sp.y, sp.size, sp.alpha);
+            });
+
+            // 🦫 子ビーバーの描画（水の手前/中に入るように配置）
+            babyBeavers.forEach(baby => {
+                drawBabyBeaver(baby);
+            });
+
+            if (currentWaterHeight > 0) {
+                ctx.fillStyle = "rgba(30, 144, 255, 0.5)";
+                let waterStartX = damX + blockWidth;
+                let waterWidth = worldWidth - waterStartX; 
+                
+                ctx.fillRect(waterStartX, waterY, waterWidth, currentWaterHeight);
+                
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(waterStartX, waterY);
+                ctx.lineTo(waterStartX + waterWidth, waterY);
+                ctx.stroke();
+            }
+
+            drawBeaver(beaver);
+
+            healEffects.forEach(he => {
+                ctx.save();
+                ctx.globalAlpha = he.alpha;
+                ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
+                ctx.fillStyle = "#00ff44";
+                ctx.strokeStyle = "#003300";
+                ctx.lineWidth = 3;
+                ctx.strokeText(he.text, he.x, he.y);
+                ctx.fillText(he.text, he.x, he.y);
+                ctx.restore();
+            });
+
+            penaltyEffects.forEach(pe => {
+                ctx.save();
+                ctx.globalAlpha = pe.alpha;
+                ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
+                ctx.fillStyle = "#ff3333";
+                ctx.strokeStyle = "#330000";
+                ctx.lineWidth = 3;
+                ctx.strokeText(pe.text, pe.x, pe.y);
+                ctx.fillText(pe.text, pe.x, pe.y);
+                ctx.restore();
+            });
+
+            ctx.restore();
+
+            if (gameClear) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            fireworks.forEach(fw => {
+                ctx.save();
+                ctx.globalAlpha = fw.alpha;
+                ctx.fillStyle = fw.color;
+                ctx.beginPath();
+                ctx.arc(fw.x, fw.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            crackers.forEach(c => {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.rotate(c.rotation);
+                ctx.fillStyle = c.color;
+                ctx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2);
+                ctx.restore();
+            });
+
+            ctx.fillStyle = "#000";
+            ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("HP: " + hp, 30, 30);
+            ctx.fillText("所持木材: " + woodCount, 30, 55);
+            ctx.fillText("お家完成度: " + damProgress + "%", 30, 80);
+            
+            let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
+            ctx.fillText("TIME: " + formatTime(displayTime), 625, 30);
+
+            if (showStartText) {
+                ctx.save();
+                ctx.font = "bold 38px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ffcc00";
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 6;
+                ctx.strokeText("✨ スタート！！ ✨", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillText("✨ スタート！！ ✨", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.restore();
+            }
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ff4444";
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 6;
+                ctx.font = "bold 40px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("GAME OVER", canvas.width / 2, 205);
+                ctx.fillText("GAME OVER", canvas.width / 2, 205);
+                ctx.restore();
+
+            } else if (gameClear) {
+                ctx.save();
+                ctx.textAlign = "center";
+
+                ctx.fillStyle = "#44ff44";
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 6;
+                ctx.font = "bold 36px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
+                ctx.fillText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
+
+                ctx.fillStyle = "#ffff44";
+                ctx.font = "bold 17px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
+                ctx.fillText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
+
+                ctx.restore();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
