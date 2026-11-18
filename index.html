@@ -921,7 +921,7 @@
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(scale, scale);
-            ctx.fillStyle = nightMode ? "rgba(220, 220, 255, 0.4)" : "rgba(255, 255, 255, 0.85)";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
             ctx.beginPath();
             ctx.arc(0, 0, 18, 0, Math.PI * 2);
             ctx.arc(18, -8, 22, 0, Math.PI * 2);
@@ -2061,6 +2061,40 @@
                     ctx.fill();
                 });
                 ctx.globalAlpha = 1.0;
+
+                // お月様（夜景モード時のみ表示）
+                let moonX = canvas.width - 150;
+                let moonY = 75;
+                let moonRadius = 26;
+
+                ctx.save();
+                ctx.fillStyle = "rgba(255, 250, 237, 0.9)";
+                ctx.beginPath();
+                ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 月の中のビーバー親子シルエット（平べったい尻尾付き）
+                ctx.fillStyle = "rgba(150, 130, 100, 0.65)";
+                
+                // 左の子どもビーバー
+                ctx.beginPath();
+                ctx.arc(moonX - 7, moonY - 1, 6.5, 0, Math.PI * 2);
+                ctx.arc(moonX - 10, moonY - 8, 3.5, 0, Math.PI * 2); // 耳
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(moonX - 15, moonY + 1, 5, 2.5, 0.2, 0, Math.PI * 2); // 尻尾
+                ctx.fill();
+
+                // 右の子どもビーバー
+                ctx.beginPath();
+                ctx.arc(moonX + 7, moonY + 5, 5.5, 0, Math.PI * 2);
+                ctx.arc(moonX + 9, moonY - 1, 3, 0, Math.PI * 2); // 耳
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(moonX + 14, moonY + 7, 4.5, 2, -0.2, 0, Math.PI * 2); // 尻尾
+                ctx.fill();
+
+                ctx.restore();
             } else {
                 ctx.fillStyle = "#87CEEB";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2199,72 +2233,16 @@
             ctx.restore();
 
             // ==========================================
-            // 3. お月様レイヤー（夜景モード時、雲よりも奥に配置）
+            // 3. 雲レイヤー（昼モードのときのみ表示。夜景モードでは完全に非表示）
             // ==========================================
-            let moonX = canvas.width - 150;
-            let moonY = 75;
-            let moonRadius = 26;
-
-            if (nightMode) {
-                ctx.save();
-                ctx.fillStyle = "rgba(255, 250, 237, 0.9)";
-                ctx.beginPath();
-                ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 月の中のビーバー親子シルエット（平べったい尻尾付き）
-                ctx.fillStyle = "rgba(150, 130, 100, 0.65)";
-                
-                // 左の子どもビーバー
-                ctx.beginPath();
-                ctx.arc(moonX - 7, moonY - 1, 6.5, 0, Math.PI * 2);
-                ctx.arc(moonX - 10, moonY - 8, 3.5, 0, Math.PI * 2); // 耳
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(moonX - 15, moonY + 1, 5, 2.5, 0.2, 0, Math.PI * 2); // 尻尾
-                ctx.fill();
-
-                // 右の子どもビーバー
-                ctx.beginPath();
-                ctx.arc(moonX + 7, moonY + 5, 5.5, 0, Math.PI * 2);
-                ctx.arc(moonX + 9, moonY - 1, 3, 0, Math.PI * 2); // 耳
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(moonX + 14, moonY + 7, 4.5, 2, -0.2, 0, Math.PI * 2); // 尻尾
-                ctx.fill();
-
-                ctx.restore();
+            if (!nightMode) {
+                clouds.forEach(cloud => {
+                    let screenX = cloud.x - (cameraX * 0.3);
+                    while (screenX < -150) screenX += worldWidth + 300;
+                    while (screenX > canvas.width + 150) screenX -= worldWidth + 300;
+                    drawCloud(screenX, cloud.y, cloud.scale);
+                });
             }
-
-            // ==========================================
-            // 4. 最前面レイヤー（月をも覆い隠す手前を流れる雲）
-            // ==========================================
-            clouds.forEach(cloud => {
-                let screenX = cloud.x - (cameraX * 0.3);
-                while (screenX < -150) screenX += worldWidth + 300;
-                while (screenX > canvas.width + 150) screenX -= worldWidth + 300;
-                
-                drawCloud(screenX, cloud.y, cloud.scale);
-
-                // もし夜景モードかつ、雲が月の位置（右上の特定エリア）に重なっている場合は、
-                // 月の表面に同じ雲の重なり（半透明のクリッピング・シルエット）を確実に手前で上書きし、
-                // 「雲が月の手前を通過している」見た目を完璧に演出します。
-                if (nightMode) {
-                    let cloudWorldRadius = 35 * cloud.scale;
-                    let distToMoon = Math.hypot(screenX - moonX, cloud.y - moonY);
-                    if (distToMoon < moonRadius + cloudWorldRadius) {
-                        ctx.save();
-                        // 月のエリアだけを描画マスクにする代わりに、同じ雲の形を月の上に重ねて月を自然に隠します
-                        ctx.fillStyle = "rgba(220, 220, 255, 0.4)";
-                        ctx.beginPath();
-                        ctx.arc(screenX, cloud.y, 18 * cloud.scale, 0, Math.PI * 2);
-                        ctx.arc(screenX + 18 * cloud.scale, cloud.y - 8 * cloud.scale, 22 * cloud.scale, 0, Math.PI * 2);
-                        ctx.arc(screenX + 40 * cloud.scale, cloud.y, 16 * cloud.scale, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.restore();
-                    }
-                }
-            });
 
             if (gameClear) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
