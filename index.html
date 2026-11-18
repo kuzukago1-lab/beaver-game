@@ -318,7 +318,20 @@
                 listHtml = "<div style='text-align:center; color:#888; padding: 10px;'>まだ記録がありません</div>";
             } else {
                 ranking.forEach((r, index) => {
-                    listHtml += `<div class="ranking-row"><span>${index + 1}. ${r.name}</span><span>${r.timeStr} <small style="color:#aaa;">(${r.date})</small></span></div>`;
+                    let rankNum = index + 1;
+                    let nameDisplay = r.name;
+                    let rowStyle = "";
+                    
+                    if (rankNum === 1) {
+                        nameDisplay = "👑 " + r.name;
+                        rowStyle = "color: #ffd700; font-weight: bold;";
+                    } else if (rankNum === 2) {
+                        rowStyle = "color: #e0e0e0; font-weight: bold;";
+                    } else if (rankNum === 3) {
+                        rowStyle = "color: #cd7f32; font-weight: bold;";
+                    }
+
+                    listHtml += `<div class="ranking-row" style="${rowStyle}"><span>${rankNum}. ${nameDisplay}</span><span>${r.timeStr} <small style="color:#aaa; font-weight:normal;">(${r.date})</small></span></div>`;
                 });
             }
             document.getElementById("rankingList").innerHTML = listHtml;
@@ -2144,7 +2157,7 @@
             drawStatusBar(20, 18, 110, 14, hp, maxHp, "HP", "#ff3344");
             drawStatusBar(20, 48, 110, 14, damProgress, maxDam, "お家完成度", "#33cc44");
 
-            // 🌟 お家完成度のゲージの中央に進捗率（％）を描画
+            // お家完成度のゲージの中央に進捗率（％）を描画
             ctx.save();
             ctx.font = "bold 10px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "center";
@@ -2202,17 +2215,18 @@
                 ctx.save();
                 ctx.textAlign = "center";
 
+                // クリア時のテキスト位置を少し上に配置（ビーバーが見切れないように調整）
                 ctx.fillStyle = "#44ff44";
                 ctx.strokeStyle = "#000000";
                 ctx.lineWidth = 6;
-                ctx.font = "bold 36px 'M PLUS Rounded 1c', sans-serif";
-                ctx.strokeText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
-                ctx.fillText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
+                ctx.font = "bold 34px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 130);
+                ctx.fillText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 130);
 
                 ctx.fillStyle = "#ffff44";
-                ctx.font = "bold 17px 'M PLUS Rounded 1c', sans-serif";
-                ctx.strokeText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
-                ctx.fillText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
+                ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 170);
+                ctx.fillText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 170);
 
                 ctx.restore();
             }
