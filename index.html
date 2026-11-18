@@ -269,7 +269,7 @@
         let currentInputSequence = [];
         let nightMode = false;
         let nightModeMsgTimer = 0;
-        let secretClickCount = 0; // 隠しクリックカウンター（10回で発動）
+        let secretClickCount = 0;
 
         function toggleNightMode() {
             nightMode = !nightMode;
@@ -720,12 +720,10 @@
         setupTouchButton("rightBtn", "ArrowRight");
         setupTouchButton("jumpBtn", "Space");
 
-        // キャンバス上の「所持木材」エリアを10回クリックすると夜景モードが切り替わる設定
         canvas.addEventListener("click", (e) => {
             let rect = canvas.getBoundingClientRect();
             let clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
             let clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
-            // 左上エリア（所持木材が表示されている周辺：X 140〜260, Y 45〜75）
             if (clickX >= 140 && clickX <= 260 && clickY >= 45 && clickY <= 75) {
                 secretClickCount++;
                 initAudio();
@@ -2053,6 +2051,7 @@
                 ctx.fillStyle = "#0c1428";
                 ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
 
+                // 星
                 stars.forEach(s => {
                     let alpha = s.baseAlpha + Math.sin(Date.now() * s.twinkleSpeed) * s.twinkleAmplitude;
                     ctx.globalAlpha = Math.max(0.1, Math.min(0.6, alpha));
@@ -2063,15 +2062,34 @@
                 });
                 ctx.globalAlpha = 1.0;
 
+                // お月様（一番奥の背景レイヤー）
+                let moonX = cameraX + 650;
+                let moonY = 70;
+                let moonRadius = 25;
+
+                ctx.save();
                 ctx.fillStyle = "rgba(255, 250, 237, 0.9)";
                 ctx.beginPath();
-                ctx.arc(cameraX + 650, 70, 25, 0, Math.PI * 2);
+                ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
                 ctx.fill();
+
+                // 月の中の薄っすら子どものビーバーシルエット
+                ctx.fillStyle = "rgba(220, 210, 190, 0.4)";
+                ctx.beginPath();
+                ctx.arc(moonX - 6, moonY - 2, 7, 0, Math.PI * 2);
+                ctx.arc(moonX - 9, moonY - 10, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(moonX + 8, moonY + 4, 6, 0, Math.PI * 2);
+                ctx.arc(moonX + 11, moonY - 3, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
             } else {
                 ctx.fillStyle = "#87CEEB";
                 ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
             }
 
+            // 雲（お月様よりも手前に描画されるため、雲が月の前を通過します）
             clouds.forEach(cloud => {
                 let renderX = cloud.x - (cameraX * 0.3);
                 if (renderX < cameraX - 100) renderX += worldWidth + 200;
