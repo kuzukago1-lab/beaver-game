@@ -277,7 +277,6 @@
                 currentInputSequence.shift();
             }
 
-            // シーケンスの一致チェック
             let matched = true;
             for (let i = 0; i < currentInputSequence.length; i++) {
                 if (currentInputSequence[i] !== secretSequence[i]) {
@@ -289,7 +288,7 @@
             if (matched && currentInputSequence.length === secretSequence.length) {
                 nightMode = !nightMode;
                 currentInputSequence = [];
-                nightModeMsgTimer = 120; // 2秒間メッセージ表示
+                nightModeMsgTimer = 120;
                 playHealSound();
             }
         }
@@ -651,8 +650,11 @@
             stars.push({
                 x: Math.random() * 2200,
                 y: Math.random() * 180,
-                size: 1 + Math.random() * 2,
-                twinkleSpeed: 0.03 + Math.random() * 0.05
+                size: 1 + Math.random() * 1.5,
+                // またたき速度を遅く（0.005〜0.015）、明るさのベースと振れ幅を目に優しいトーンに調整
+                baseAlpha: 0.2 + Math.random() * 0.3,
+                twinkleAmplitude: 0.1 + Math.random() * 0.15,
+                twinkleSpeed: 0.005 + Math.random() * 0.01
             });
         }
 
@@ -691,7 +693,6 @@
             }
             keys[e.code] = true;
 
-            // キーボード入力でもコマンド判定
             if (e.code === "ArrowLeft" || e.code === "KeyA") onCommandAction('left');
             if (e.code === "ArrowRight" || e.code === "KeyD") onCommandAction('right');
             if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") onCommandAction('jump');
@@ -2027,16 +2028,15 @@
             ctx.save();
             ctx.translate(-cameraX, 0);
 
-            // 夜景モード / 昼モードの背景切り替え
             if (nightMode) {
                 ctx.fillStyle = "#0c1428";
                 ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
 
-                // 星空の描画
-                ctx.fillStyle = "#ffffff";
+                // 星のまたたきを目に優しい穏やかな光り方に描画
                 stars.forEach(s => {
-                    let alpha = 0.5 + Math.sin(Date.now() * s.twinkleSpeed) * 0.5;
-                    ctx.globalAlpha = alpha;
+                    let alpha = s.baseAlpha + Math.sin(Date.now() * s.twinkleSpeed) * s.twinkleAmplitude;
+                    ctx.globalAlpha = Math.max(0.1, Math.min(0.6, alpha));
+                    ctx.fillStyle = "#ffffff";
                     ctx.beginPath();
                     ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -2044,7 +2044,7 @@
                 ctx.globalAlpha = 1.0;
 
                 // お月様
-                ctx.fillStyle = "#fffaed";
+                ctx.fillStyle = "rgba(255, 250, 237, 0.9)";
                 ctx.beginPath();
                 ctx.arc(cameraX + 650, 70, 25, 0, Math.PI * 2);
                 ctx.fill();
@@ -2230,7 +2230,6 @@
             drawStatusBar(20, 18, 110, 14, hp, maxHp, "HP", "#ff3344");
             drawStatusBar(20, 48, 110, 14, damProgress, maxDam, "お家完成度", "#33cc44");
 
-            // お家完成度のゲージの中央に進捗率（％）を描画
             ctx.save();
             ctx.font = "bold 10px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "center";
@@ -2258,7 +2257,6 @@
             ctx.fillText("TIME: " + formatTime(displayTime), canvas.width / 2, 36);
             ctx.restore();
 
-            // 隠しコマンド成功時のメッセージ表示
             if (nightModeMsgTimer > 0) {
                 ctx.save();
                 ctx.textAlign = "center";
