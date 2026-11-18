@@ -31,10 +31,16 @@
         }
         h2 {
             color: #fff;
-            margin: 4px 0;
+            margin: 4px auto;
             font-size: 17px;
             font-weight: 800;
             letter-spacing: 1px;
+            max-width: 800px;
+            line-height: 1.3;
+        }
+        .title-line {
+            display: inline-block;
+            white-space: nowrap;
         }
         .game-container {
             position: relative;
@@ -199,7 +205,10 @@
     </style>
 </head>
 <body>
-    <h2>🦫 ビーバー・ダム・ビルダーズ タイムアタック</h2>
+    <h2>
+        <span class="title-line">🦫 ビーバー・ダム・ビルダーズ</span><br>
+        <span class="title-line">タイムアタック</span>
+    </h2>
     <div class="game-container">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
     </div>
@@ -1263,6 +1272,12 @@
                 ctx.moveTo(38, 16); ctx.lineTo(44, 22);
                 ctx.moveTo(44, 16); ctx.lineTo(38, 22);
                 ctx.stroke();
+            } else if (gameClear) {
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(25, 20); ctx.lineTo(29, 15); ctx.lineTo(33, 20);
+                ctx.moveTo(37, 20); ctx.lineTo(41, 15); ctx.lineTo(45, 20);
+                ctx.stroke();
             } else if (beaver.isBlinking) {
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -1320,7 +1335,21 @@
                 ctx.stroke();
             });
 
-            if (woodCount === 0) {
+            if (gameClear) {
+                ctx.fillStyle = armColor;
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = strokeWidth;
+
+                ctx.beginPath();
+                ctx.ellipse(15, 28, 5, 6, -0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(55, 28, 5, 6, 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else if (woodCount === 0) {
                 ctx.fillStyle = armColor;
                 ctx.strokeStyle = outlineColor;
                 ctx.lineWidth = strokeWidth;
@@ -1336,7 +1365,7 @@
                 ctx.stroke();
             }
 
-            if (woodCount >= 1) {
+            if (!gameClear && woodCount >= 1) {
                 ctx.save();
                 ctx.translate(14, 24);
                 ctx.fillStyle = "#8B4513";
@@ -1370,7 +1399,7 @@
                 ctx.stroke();
             } 
             
-            if (woodCount >= 2) {
+            if (!gameClear && woodCount >= 2) {
                 let stackCount = Math.min(3, woodCount - 1); 
                 for (let i = 0; i < stackCount; i++) {
                     let boxY = -6 - (i * 12); 
@@ -1597,6 +1626,47 @@
             updateBGM();
             updateBabyBeavers();
 
+            if (gameClear) {
+                if (clearTimer === 0) {
+                    timerRunning = false;
+                    finalTimeString = formatTime(elapsedTime + penaltyTime);
+                    
+                    playVictoryFanfare();
+                    
+                    if (!scoreRegistered && !clearModalTriggered) {
+                        clearModalTriggered = true;
+                        setTimeout(() => {
+                            openRankingModal(true);
+                        }, 900);
+                    }
+                }
+
+                if (clearTimer < maxClearTime) {
+                    clearTimer++;
+                    if (Math.random() < 0.12) spawnFirework();
+                    if (Math.random() < 0.18) spawnCrackerBurst();
+                }
+
+                fireworks.forEach(fw => {
+                    fw.x += fw.vx;
+                    fw.y += fw.vy;
+                    fw.vy += 0.05;
+                    fw.alpha -= 1 / fw.life;
+                });
+                fireworks = fireworks.filter(fw => fw.alpha > 0);
+
+                crackers.forEach(c => {
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    c.vy += c.gravity;
+                    c.rotation += c.vRot;
+                    c.life--;
+                });
+                crackers = crackers.filter(c => c.life > 0);
+
+                return;
+            }
+
             if (Math.random() < 0.35) {
                 buildSparkles.push({
                     x: damX - 10 + Math.random() * 60,
@@ -1646,47 +1716,6 @@
 
             if (timerRunning && !gameClear) {
                 elapsedTime = Date.now() - startTime;
-            }
-
-            if (gameClear) {
-                if (clearTimer === 0) {
-                    timerRunning = false;
-                    finalTimeString = formatTime(elapsedTime + penaltyTime);
-                    
-                    playVictoryFanfare();
-                    
-                    if (!scoreRegistered && !clearModalTriggered) {
-                        clearModalTriggered = true;
-                        setTimeout(() => {
-                            openRankingModal(true);
-                        }, 900);
-                    }
-                }
-
-                if (clearTimer < maxClearTime) {
-                    clearTimer++;
-                    if (Math.random() < 0.12) spawnFirework();
-                    if (Math.random() < 0.18) spawnCrackerBurst();
-                }
-
-                fireworks.forEach(fw => {
-                    fw.x += fw.vx;
-                    fw.y += fw.vy;
-                    fw.vy += 0.05;
-                    fw.alpha -= 1 / fw.life;
-                });
-                fireworks = fireworks.filter(fw => fw.alpha > 0);
-
-                crackers.forEach(c => {
-                    c.x += c.vx;
-                    c.y += c.vy;
-                    c.vy += c.gravity;
-                    c.rotation += c.vRot;
-                    c.life--;
-                });
-                crackers = crackers.filter(c => c.life > 0);
-
-                return;
             }
 
             if (invincibilityTimer > 0) { invincibilityTimer--; }
@@ -1815,9 +1844,7 @@
             if (cameraX < 0) cameraX = 0;
             if (cameraX > worldWidth - canvas.width) cameraX = worldWidth - canvas.width;
 
-            // ダム完成に必要な残り丸太数を計算（1ブロック＝10%＝丸太1本）
             let remainingNeeded = Math.round((maxDam - damProgress) / 10);
-            // 持てる最大数（4本まで、かつダム完成に必要な残り本数を超えない）
             let maxCarryable = Math.min(4, remainingNeeded);
 
             woods.forEach(wood => {
@@ -1998,17 +2025,19 @@
             ctx.fillStyle = beamGrad;
             ctx.fillRect(damX - 10, 150, blockWidth + 20, 150);
 
-            ctx.save();
-            ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#ffff66";
-            ctx.strokeStyle = "#331a00";
-            ctx.lineWidth = 3.5;
-            let textX = damX + blockWidth / 2;
-            let textY = 175 + Math.sin(Date.now() * 0.006) * 3;
-            ctx.strokeText("↓ ここにお家を作ろう！！", textX, textY);
-            ctx.fillText("↓ ここにお家を作ろう！！", textX, textY);
-            ctx.restore();
+            if (!gameClear) {
+                ctx.save();
+                ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ffff66";
+                ctx.strokeStyle = "#331a00";
+                ctx.lineWidth = 3.5;
+                let textX = damX + blockWidth / 2;
+                let textY = 175 + Math.sin(Date.now() * 0.006) * 3;
+                ctx.strokeText("↓ ここにお家を作ろう！！", textX, textY);
+                ctx.fillText("↓ ここにお家を作ろう！！", textX, textY);
+                ctx.restore();
+            }
 
             let maxBlocks = 10;
             let currentBlocks = Math.floor((damProgress / 100) * maxBlocks);
@@ -2114,6 +2143,15 @@
 
             drawStatusBar(20, 18, 110, 14, hp, maxHp, "HP", "#ff3344");
             drawStatusBar(20, 48, 110, 14, damProgress, maxDam, "お家完成度", "#33cc44");
+
+            // 🌟 お家完成度のゲージの中央に進捗率（％）を描画
+            ctx.save();
+            ctx.font = "bold 10px 'M PLUS Rounded 1c', sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#000000";
+            ctx.fillText(damProgress + "%", 20 + 55, 48 + 7);
+            ctx.restore();
 
             let remainingNeeded = Math.round((maxDam - damProgress) / 10);
             let maxCarryable = Math.min(4, remainingNeeded);
