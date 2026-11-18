@@ -325,10 +325,6 @@
                     if (rankNum === 1) {
                         nameDisplay = "👑 " + r.name;
                         rowStyle = "color: #ffd700; font-weight: bold;";
-                    } else if (rankNum === 2) {
-                        rowStyle = "color: #e0e0e0; font-weight: bold;";
-                    } else if (rankNum === 3) {
-                        rowStyle = "color: #cd7f32; font-weight: bold;";
                     }
 
                     listHtml += `<div class="ranking-row" style="${rowStyle}"><span>${rankNum}. ${nameDisplay}</span><span>${r.timeStr} <small style="color:#aaa; font-weight:normal;">(${r.date})</small></span></div>`;
@@ -1640,6 +1636,15 @@
             updateBabyBeavers();
 
             if (gameClear) {
+                // 操作ビーバーもゲームクリア時にピョンピョン跳ねる演出
+                beaver.vy += 0.45;
+                beaver.y += beaver.vy;
+                beaver.walkTimer += 0.35;
+                if (beaver.y >= 225) {
+                    beaver.y = 225;
+                    beaver.vy = -8.0;
+                }
+
                 if (clearTimer === 0) {
                     timerRunning = false;
                     finalTimeString = formatTime(elapsedTime + penaltyTime);
@@ -1771,7 +1776,8 @@
             });
             penaltyEffects = penaltyEffects.filter(pe => pe.alpha > 0);
 
-            let weightFactor = 1.0 - (woodCount * 0.1); 
+            // 丸太を多く持ったときのペータをさらに20%遅く調整（0.12刻み）
+            let weightFactor = 1.0 - (woodCount * 0.12); 
             let currentSpeed = beaver.baseSpeed * weightFactor;
             let currentJumpForce = beaver.baseJumpForce * (1.0 - (woodCount * 0.04));
 
@@ -2215,18 +2221,18 @@
                 ctx.save();
                 ctx.textAlign = "center";
 
-                // クリア時のテキスト位置を少し上に配置（ビーバーが見切れないように調整）
+                // クリア時のテキスト位置を元の位置に戻しました
                 ctx.fillStyle = "#44ff44";
                 ctx.strokeStyle = "#000000";
                 ctx.lineWidth = 6;
-                ctx.font = "bold 34px 'M PLUS Rounded 1c', sans-serif";
-                ctx.strokeText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 130);
-                ctx.fillText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 130);
+                ctx.font = "bold 36px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
+                ctx.fillText("🎉 CLEAR! " + finalTimeString + " 🎉", canvas.width / 2, 175);
 
                 ctx.fillStyle = "#ffff44";
-                ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
-                ctx.strokeText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 170);
-                ctx.fillText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 170);
+                ctx.font = "bold 17px 'M PLUS Rounded 1c', sans-serif";
+                ctx.strokeText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
+                ctx.fillText("おめでとう！下のボタンからランキングを確認してね", canvas.width / 2, 215);
 
                 ctx.restore();
             }
