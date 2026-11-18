@@ -712,7 +712,7 @@
             btn.addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); keys[code] = true; });
             btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[code] = false; });
             btn.addEventListener("mousedown", (e) => { e.preventDefault(); initAudio(); keys[code] = true; });
-            btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[code] = false; });
+            btn.addEventListener("mouseup", (e) => { keys[code] = false; });
             btn.addEventListener("mouseleave", (e) => { keys[code] = false; });
         }
 
@@ -2062,7 +2062,7 @@
                 });
                 ctx.globalAlpha = 1.0;
 
-                // お月様（一番奥の背景レイヤー）
+                // お月様（1. 背景描画の最初に配置）
                 let moonX = cameraX + 650;
                 let moonY = 70;
                 let moonRadius = 25;
@@ -2073,15 +2073,17 @@
                 ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // 月の中の薄っすら子どものビーバーシルエット
-                ctx.fillStyle = "rgba(220, 210, 190, 0.4)";
+                // 月の中のビーバーシルエット（濃さをはっきりと調整）
+                ctx.fillStyle = "rgba(160, 140, 110, 0.55)";
                 ctx.beginPath();
-                ctx.arc(moonX - 6, moonY - 2, 7, 0, Math.PI * 2);
-                ctx.arc(moonX - 9, moonY - 10, 4, 0, Math.PI * 2);
+                // 左の子ども（もちつきポーズ風）
+                ctx.arc(moonX - 6, moonY - 2, 7.5, 0, Math.PI * 2);
+                ctx.arc(moonX - 9, moonY - 10, 4.5, 0, Math.PI * 2); // 耳
                 ctx.fill();
+                // 右の子ども（うす・丸太寄り添い風）
                 ctx.beginPath();
-                ctx.arc(moonX + 8, moonY + 4, 6, 0, Math.PI * 2);
-                ctx.arc(moonX + 11, moonY - 3, 3.5, 0, Math.PI * 2);
+                ctx.arc(moonX + 8, moonY + 4, 6.5, 0, Math.PI * 2);
+                ctx.arc(moonX + 11, moonY - 3, 4, 0, Math.PI * 2); // 耳
                 ctx.fill();
                 ctx.restore();
             } else {
@@ -2089,7 +2091,7 @@
                 ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
             }
 
-            // 雲（お月様よりも手前に描画されるため、雲が月の前を通過します）
+            // 雲（2. お月様よりもあとに描画するため、雲が月の手前を通過します）
             clouds.forEach(cloud => {
                 let renderX = cloud.x - (cameraX * 0.3);
                 if (renderX < cameraX - 100) renderX += worldWidth + 200;
