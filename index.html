@@ -215,11 +215,11 @@
     
     <div class="mobile-controls">
         <div class="d-pad">
-            <button class="ctrl-btn" id="leftBtn">◀</button>
-            <button class="ctrl-btn" id="rightBtn">▶</button>
+            <button class="ctrl-btn" id="leftBtn" onclick="onCommandAction('left')">◀</button>
+            <button class="ctrl-btn" id="rightBtn" onclick="onCommandAction('right')">▶</button>
         </div>
         <div class="jump-pad">
-            <button class="ctrl-btn jump-btn" id="jumpBtn">▲ ジャンプ</button>
+            <button class="ctrl-btn jump-btn" id="jumpBtn" onclick="onCommandAction('jump')">▲ ジャンプ</button>
         </div>
     </div>
 
@@ -228,8 +228,8 @@
             ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！（丸太は最大4本まで）
         </div>
         <div class="menu-btns">
-            <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
-            <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキング</button>
+            <button class="action-btn" id="restartBtn" onclick="onCommandAction('restart'); restartGame();">🔄 リスタート</button>
+            <button class="action-btn" id="rankingBtn" onclick="onCommandAction('ranking'); openRankingModal(false);">🏆 ランキング</button>
         </div>
     </div>
 
@@ -264,6 +264,35 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
+
+        // 隠しコマンド管理
+        const secretSequence = ['restart', 'restart', 'left', 'right', 'left', 'right', 'jump', 'jump', 'ranking'];
+        let currentInputSequence = [];
+        let nightMode = false;
+        let nightModeMsgTimer = 0;
+
+        function onCommandAction(action) {
+            currentInputSequence.push(action);
+            if (currentInputSequence.length > secretSequence.length) {
+                currentInputSequence.shift();
+            }
+
+            // シーケンスの一致チェック
+            let matched = true;
+            for (let i = 0; i < currentInputSequence.length; i++) {
+                if (currentInputSequence[i] !== secretSequence[i]) {
+                    matched = false;
+                    break;
+                }
+            }
+
+            if (matched && currentInputSequence.length === secretSequence.length) {
+                nightMode = !nightMode;
+                currentInputSequence = [];
+                nightModeMsgTimer = 120; // 2秒間メッセージ表示
+                playHealSound();
+            }
+        }
 
         window.addEventListener("DOMContentLoaded", async () => {
             try {
@@ -617,6 +646,16 @@
             { x: 1850, y: 50, speed: 0.22, scale: 0.9 },
         ];
 
+        let stars = [];
+        for(let i=0; i<45; i++) {
+            stars.push({
+                x: Math.random() * 2200,
+                y: Math.random() * 180,
+                size: 1 + Math.random() * 2,
+                twinkleSpeed: 0.03 + Math.random() * 0.05
+            });
+        }
+
         let beaver = {
             x: 100,
             y: 220,
@@ -651,6 +690,11 @@
                 e.preventDefault();
             }
             keys[e.code] = true;
+
+            // キーボード入力でもコマンド判定
+            if (e.code === "ArrowLeft" || e.code === "KeyA") onCommandAction('left');
+            if (e.code === "ArrowRight" || e.code === "KeyD") onCommandAction('right');
+            if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") onCommandAction('jump');
         });
         window.addEventListener("keyup", (e) => { 
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
@@ -858,7 +902,7 @@
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(scale, scale);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.fillStyle = nightMode ? "rgba(220, 220, 255, 0.4)" : "rgba(255, 255, 255, 0.85)";
             ctx.beginPath();
             ctx.arc(0, 0, 18, 0, Math.PI * 2);
             ctx.arc(18, -8, 22, 0, Math.PI * 2);
@@ -1034,7 +1078,7 @@
             }
             ctx.stroke();
 
-            ctx.fillStyle = "#3b7a30";
+            ctx.fillStyle = nightMode ? "#254220" : "#3b7a30";
             ctx.beginPath();
             ctx.ellipse(10, rock.height - 4, 7, 3.5, 0, 0, Math.PI * 2);
             ctx.ellipse(rock.width - 12, rock.height - 5, 9, 4, 0, 0, Math.PI * 2);
@@ -1624,6 +1668,8 @@
         }
 
         function update() {
+            if (nightModeMsgTimer > 0) nightModeMsgTimer--;
+
             if (gameOver) {
                 if (!gameOverSoundPlayed) {
                     gameOverSoundPlayed = true;
@@ -1636,7 +1682,6 @@
             updateBabyBeavers();
 
             if (gameClear) {
-                // 操作ビーバーもゲームクリア時にピョンピョン跳ねる演出
                 beaver.vy += 0.45;
                 beaver.y += beaver.vy;
                 beaver.walkTimer += 0.35;
@@ -1776,7 +1821,6 @@
             });
             penaltyEffects = penaltyEffects.filter(pe => pe.alpha > 0);
 
-            // 丸太を多く持ったときのペータをさらに20%遅く調整（0.12刻み）
             let weightFactor = 1.0 - (woodCount * 0.12); 
             let currentSpeed = beaver.baseSpeed * weightFactor;
             let currentJumpForce = beaver.baseJumpForce * (1.0 - (woodCount * 0.04));
@@ -1954,13 +1998,13 @@
 
         function drawStatusBar(x, y, width, height, current, max, label, fillColor) {
             ctx.save();
-            ctx.fillStyle = "#000";
+            ctx.fillStyle = nightMode ? "#fff" : "#000";
             ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
             ctx.fillText(label, x, y - 4);
 
             ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-            ctx.strokeStyle = "#000";
+            ctx.strokeStyle = nightMode ? "#fff" : "#000";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.roundRect(x, y, width, height, 5);
@@ -1983,8 +2027,31 @@
             ctx.save();
             ctx.translate(-cameraX, 0);
 
-            ctx.fillStyle = "#87CEEB";
-            ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+            // 夜景モード / 昼モードの背景切り替え
+            if (nightMode) {
+                ctx.fillStyle = "#0c1428";
+                ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+
+                // 星空の描画
+                ctx.fillStyle = "#ffffff";
+                stars.forEach(s => {
+                    let alpha = 0.5 + Math.sin(Date.now() * s.twinkleSpeed) * 0.5;
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+
+                // お月様
+                ctx.fillStyle = "#fffaed";
+                ctx.beginPath();
+                ctx.arc(cameraX + 650, 70, 25, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = "#87CEEB";
+                ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+            }
 
             clouds.forEach(cloud => {
                 let renderX = cloud.x - (cameraX * 0.3);
@@ -1992,7 +2059,7 @@
                 drawCloud(renderX, cloud.y, cloud.scale);
             });
 
-            ctx.fillStyle = "#4a8563";
+            ctx.fillStyle = nightMode ? "#1e382b" : "#4a8563";
             ctx.beginPath();
             ctx.moveTo(cameraX, 300);
             for (let i = 0; i <= worldWidth; i += 200) {
@@ -2001,7 +2068,7 @@
             ctx.lineTo(cameraX + canvas.width, 300);
             ctx.fill();
 
-            ctx.fillStyle = "#2d5a3f";
+            ctx.fillStyle = nightMode ? "#16281e" : "#2d5a3f";
             ctx.beginPath();
             ctx.moveTo(cameraX, 300);
             for (let i = 0; i <= worldWidth; i += 120) {
@@ -2010,9 +2077,9 @@
             ctx.lineTo(cameraX + canvas.width, 300);
             ctx.fill();
 
-            ctx.fillStyle = "#5c4033";
+            ctx.fillStyle = nightMode ? "#332211" : "#5c4033";
             ctx.fillRect(0, 300, worldWidth, 100);
-            ctx.fillStyle = "#228B22";
+            ctx.fillStyle = nightMode ? "#1b4d1b" : "#228B22";
             ctx.fillRect(0, 300, worldWidth, 15);
 
             rocks.forEach(rock => {
@@ -2092,7 +2159,7 @@
             });
 
             if (currentWaterHeight > 0) {
-                ctx.fillStyle = "rgba(30, 144, 255, 0.5)";
+                ctx.fillStyle = nightMode ? "rgba(10, 80, 160, 0.6)" : "rgba(30, 144, 255, 0.5)";
                 let waterStartX = damX + blockWidth;
                 let waterWidth = worldWidth - waterStartX; 
                 
@@ -2168,14 +2235,14 @@
             ctx.font = "bold 10px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillStyle = "#000000";
+            ctx.fillStyle = nightMode ? "#ffffff" : "#000000";
             ctx.fillText(damProgress + "%", 20 + 55, 48 + 7);
             ctx.restore();
 
             let remainingNeeded = Math.round((maxDam - damProgress) / 10);
             let maxCarryable = Math.min(4, remainingNeeded);
 
-            ctx.fillStyle = "#000";
+            ctx.fillStyle = nightMode ? "#fff" : "#000";
             ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
             ctx.fillText("所持木材: " + woodCount + " / " + maxCarryable, 145, 60);
@@ -2190,6 +2257,20 @@
             ctx.strokeText("TIME: " + formatTime(displayTime), canvas.width / 2, 36);
             ctx.fillText("TIME: " + formatTime(displayTime), canvas.width / 2, 36);
             ctx.restore();
+
+            // 隠しコマンド成功時のメッセージ表示
+            if (nightModeMsgTimer > 0) {
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.font = "bold 24px 'M PLUS Rounded 1c', sans-serif";
+                ctx.fillStyle = "#00ffff";
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 4;
+                let modeText = nightMode ? "🌙 夜景モード ON！ 🌙" : "☀️ 昼モードに戻りました ☀️";
+                ctx.strokeText(modeText, canvas.width / 2, 90);
+                ctx.fillText(modeText, canvas.width / 2, 90);
+                ctx.restore();
+            }
 
             if (showStartText) {
                 ctx.save();
@@ -2221,7 +2302,6 @@
                 ctx.save();
                 ctx.textAlign = "center";
 
-                // クリア時のテキスト位置を元の位置に戻しました
                 ctx.fillStyle = "#44ff44";
                 ctx.strokeStyle = "#000000";
                 ctx.lineWidth = 6;
