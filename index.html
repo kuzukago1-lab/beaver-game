@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -218,7 +218,7 @@
     </div>
     
     <div class="info">
-        ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！
+        ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！（丸太は最大4本まで）
     </div>
 
     <!-- ランキング＆名前登録モーダル -->
@@ -248,13 +248,11 @@
             measurementId: "G-6RM0CQXDBL"
         };
 
-        // Firebaseの初期化（二重初期化防止）
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
 
-        // 🔄 ページ読み込み時に自動でクラウドからランキングを取得して表示
         window.addEventListener("DOMContentLoaded", async () => {
             try {
                 let ranking = await getCloudRanking();
@@ -264,7 +262,6 @@
             }
         });
 
-        // 🏆 クラウドからランキングを取得する処理
         async function getCloudRanking() {
             try {
                 let snapshot = await db.collection("rankings")
@@ -290,7 +287,6 @@
             }
         }
 
-        // 📝 クラウドへスコアを確実に保存する処理
         async function saveCloudScore(playerName, timeMs, timeStr) {
             let now = new Date();
             let dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -304,7 +300,6 @@
             });
         }
 
-        // ランキング一覧のHTMLを生成する共通関数
         function updateRankingDisplay(ranking) {
             let listHtml = "";
             if (ranking.length === 0) {
@@ -328,7 +323,6 @@
             }
         }
 
-        // 🎵 スタート時の「チュルチュルピュピューン」効果音
         function playStartSound() {
             initAudio();
             if (!audioCtx) return;
@@ -370,12 +364,10 @@
             oscSweep.stop(audioCtx.currentTime + 0.65);
         }
 
-        // 🎵 ゲームオーバー時の「ギュルギュルブブブーーー」という淋しいサウンド
         function playGameOverSound() {
             initAudio();
             if (!audioCtx) return;
 
-            // 1. 下降する「ギュルギュル」感のメロディ
             let dropNotes = [
                 { f: 330.00, t: 0.0,  d: 0.18 },
                 { f: 293.66, t: 0.15, d: 0.18 },
@@ -398,12 +390,11 @@
                 osc.stop(audioCtx.currentTime + n.t + n.d);
             });
 
-            // 2. 終わりの「ブブブーーー」という低い重低音（デチューン＋ノコギリ波）
             let oscBass = audioCtx.createOscillator();
             let gainBass = audioCtx.createGain();
             oscBass.type = 'sawtooth';
-            oscBass.frequency.setValueAtTime(110.00, audioCtx.currentTime + 0.6); // A2
-            oscBass.frequency.linearRampToValueAtTime(55.00, audioCtx.currentTime + 1.2);  // A1へずーっと沈む
+            oscBass.frequency.setValueAtTime(110.00, audioCtx.currentTime + 0.6);
+            oscBass.frequency.linearRampToValueAtTime(55.00, audioCtx.currentTime + 1.2);
 
             gainBass.gain.setValueAtTime(0.22, audioCtx.currentTime + 0.6);
             gainBass.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.4);
@@ -569,8 +560,8 @@
         let hp = 100;
         const maxHp = 100;
         let gameOver = false;
+        let gameOverSoundPlayed = false;
         let gameClear = false;
-        let gameOverSoundPlayed = false; // 🎵 ゲームオーバー音の重複再生防止用
         let invincibilityTimer = 0;
         let deliverTimer = 0;
 
@@ -673,10 +664,11 @@
             { x: 1480, y: 225, width: 90, height: 75, type: 3 }
         ];
 
+        // ハリネズミ（当たり判定を少し小さくするため、幅・高さを縮小、座標を微調整）
         let enemies = [
-            { x: 500, y: 275, width: 44, height: 25, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 0 },
-            { x: 1200, y: 275, width: 44, height: 25, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false, walkTimer: 2 },
-            { x: 1600, y: 275, width: 44, height: 25, speed: 3.0 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 4 }
+            { x: 500, y: 280, width: 34, height: 20, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 0 },
+            { x: 1200, y: 280, width: 34, height: 20, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false, walkTimer: 2 },
+            { x: 1600, y: 280, width: 34, height: 20, speed: 3.0 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 4 }
         ];
 
         let cameraX = 0;
@@ -1262,7 +1254,6 @@
 
             ctx.fillStyle = "#1a0c04";
             if (gameOver) {
-                // ゲームオーバーのときは「××」の目でしょんぼり
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
                 ctx.moveTo(26, 16); ctx.lineTo(32, 22);
@@ -1377,8 +1368,9 @@
                 ctx.stroke();
             } 
             
+            // 最大4本までの描画に調整
             if (woodCount >= 2) {
-                let stackCount = woodCount - 1; 
+                let stackCount = Math.min(3, woodCount - 1); 
                 for (let i = 0; i < stackCount; i++) {
                     let boxY = -6 - (i * 12); 
                     ctx.save();
@@ -1594,7 +1586,6 @@
 
         function update() {
             if (gameOver) {
-                // 🎵 ゲームオーバーになった瞬間に1回だけ寂しい専用サウンドを再生
                 if (!gameOverSoundPlayed) {
                     gameOverSoundPlayed = true;
                     playGameOverSound();
@@ -1830,7 +1821,9 @@
                         wood.collected = false; wood.respawnTimer = 0;
                     }
                 } else {
-                    if (beaver.x < wood.x + 40 && beaver.x + beaver.width > wood.x &&
+                    // 丸太は最大4本までしか持てないように制限
+                    if (woodCount < 4 &&
+                        beaver.x < wood.x + 40 && beaver.x + beaver.width > wood.x &&
                         beaver.y < wood.y + 22 && beaver.y + beaver.height > wood.y) {
                         wood.collected = true; 
                         woodCount += 1;
@@ -1888,9 +1881,11 @@
                     enemy.blinkTimer = 0;
                 }
 
+                // ハリネズミの当たり判定（少しマージンを持たせて厳しさを軽減）
+                let margin = 6;
                 if (invincibilityTimer === 0 &&
-                    beaver.x < enemy.x + enemy.width && beaver.x + beaver.width > enemy.x &&
-                    beaver.y < enemy.y + enemy.height && beaver.y + beaver.height > enemy.y) {
+                    beaver.x + margin < enemy.x + enemy.width && beaver.x + beaver.width - margin > enemy.x &&
+                    beaver.y + margin < enemy.y + enemy.height && beaver.y + beaver.height - margin > enemy.y) {
                     hp -= 20;
                     invincibilityTimer = 60;
                     penaltyTime += 5000;
@@ -2072,13 +2067,15 @@
                 ctx.restore();
             });
 
+            // 🌟 ペナルティ文字を大きく・見やすく改善（黄色と赤の二重フチ＆サイズ拡大）
             penaltyEffects.forEach(pe => {
                 ctx.save();
                 ctx.globalAlpha = pe.alpha;
-                ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
-                ctx.fillStyle = "#ff3333";
-                ctx.strokeStyle = "#330000";
-                ctx.lineWidth = 3;
+                ctx.font = "bold 24px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ffcc00";
+                ctx.strokeStyle = "#cc0000";
+                ctx.lineWidth = 5;
                 ctx.strokeText(pe.text, pe.x, pe.y);
                 ctx.fillText(pe.text, pe.x, pe.y);
                 ctx.restore();
@@ -2116,7 +2113,7 @@
             ctx.fillStyle = "#000";
             ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
-            ctx.fillText("所持木材: " + woodCount, 175, 70);
+            ctx.fillText("所持木材: " + woodCount + " / 4", 175, 70);
             
             let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
             ctx.fillText("TIME: " + formatTime(displayTime), 625, 33);
