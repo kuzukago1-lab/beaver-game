@@ -102,18 +102,28 @@
             background-color: #dd4422;
         }
 
+        .info-area {
+            max-width: 800px;
+            margin: 6px auto 0 auto;
+        }
+        .info {
+            font-size: 11px;
+            background: #f0f0f0;
+            color: #222;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            font-weight: 800;
+        }
         .menu-btns {
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             justify-content: center;
             gap: 15px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
         }
         .action-btn {
-            padding: 10px 24px;
-            font-size: 16px;
+            padding: 8px 20px;
+            font-size: 15px;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             font-weight: 800;
             background-color: #ffcc00;
@@ -173,17 +183,6 @@
             border-bottom: 1px solid #444;
             padding-bottom: 2px;
         }
-        .info {
-            margin-top: 6px;
-            font-size: 11px;
-            background: #f0f0f0;
-            color: #222;
-            padding: 4px 8px;
-            border-radius: 6px;
-            display: inline-block;
-            max-width: 800px;
-            font-weight: 800;
-        }
         #nameInput {
             padding: 6px;
             font-size: 16px;
@@ -215,14 +214,16 @@
         </div>
     </div>
 
-    <!-- リスタート・ランキングボタンを下段へ移動 -->
-    <div class="menu-btns">
-        <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
-        <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキング</button>
-    </div>
-    
-    <div class="info">
-        ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！（丸太は最大4本まで）
+    <!-- 説明文を下段移動の基準に -->
+    <div class="info-area">
+        <div class="info">
+            ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！（丸太は最大4本まで）
+        </div>
+        <!-- リスタート・ランキングボタンを説明文の下へ移動 -->
+        <div class="menu-btns">
+            <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
+            <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキング</button>
+        </div>
     </div>
 
     <!-- ランキング＆名前登録モーダル -->
@@ -1709,8 +1710,8 @@
                     c.collected = true;
                     playHealSound();
                     healEffects.push({
-                        x: beaver.x + 15,
-                        y: beaver.y - 10,
+                        x: beaver.x + 10,
+                        y: beaver.y - 15,
                         text: healed > 0 ? `+${healed} HP!` : "MAX HP!",
                         alpha: 1.0
                     });
@@ -1890,6 +1891,12 @@
                     invincibilityTimer = 60;
                     penaltyTime += 5000;
                     playDamageSound();
+                    
+                    // 🌟 丸太を持っていたらダメージ時にすべて手元からなくす（放り投げる）仕様
+                    if (woodCount > 0) {
+                        woodCount = 0;
+                    }
+
                     penaltyEffects.push({
                         x: beaver.x + 10,
                         y: beaver.y - 15,
@@ -2055,13 +2062,15 @@
 
             drawBeaver(beaver);
 
+            // 🌟 HP回復の文字を大きく・フチ付きで見やすく改善
             healEffects.forEach(he => {
                 ctx.save();
                 ctx.globalAlpha = he.alpha;
-                ctx.font = "bold 16px 'M PLUS Rounded 1c', sans-serif";
-                ctx.fillStyle = "#00ff44";
+                ctx.font = "bold 24px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#33ff66";
                 ctx.strokeStyle = "#003300";
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 5;
                 ctx.strokeText(he.text, he.x, he.y);
                 ctx.fillText(he.text, he.x, he.y);
                 ctx.restore();
@@ -2114,7 +2123,6 @@
             ctx.textAlign = "left";
             ctx.fillText("所持木材: " + woodCount + " / 4", 145, 60);
             
-            // 🌟 タイム表示を中央上部に移動＆大きく目立つように描画
             let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
             ctx.save();
             ctx.textAlign = "center";
