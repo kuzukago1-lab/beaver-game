@@ -103,22 +103,25 @@
         }
 
         .menu-btns {
-            margin-top: 6px;
+            margin-top: 8px;
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 15px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .action-btn {
-            padding: 6px 16px;
-            font-size: 14px;
+            padding: 10px 24px;
+            font-size: 16px;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             font-weight: 800;
             background-color: #ffcc00;
             color: #222;
             border: 2px solid #333;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
             outline: none;
         }
         .action-btn:hover {
@@ -171,7 +174,7 @@
             padding-bottom: 2px;
         }
         .info {
-            margin-top: 4px;
+            margin-top: 6px;
             font-size: 11px;
             background: #f0f0f0;
             color: #222;
@@ -212,9 +215,10 @@
         </div>
     </div>
 
+    <!-- リスタート・ランキングボタンを下段へ移動 -->
     <div class="menu-btns">
         <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
-        <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキングを見る</button>
+        <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキング</button>
     </div>
     
     <div class="info">
@@ -229,11 +233,11 @@
         <div id="nameEntryArea" style="margin-bottom: 10px; display:none;">
             <p style="font-size: 13px; margin: 4px 0;">お名前を入力してください:</p>
             <input type="text" id="nameInput" maxlength="10" placeholder="なまえ">
-            <button class="action-btn" id="registerBtn" onclick="saveScore()">登録</button>
+            <button class="action-btn" id="registerBtn" onclick="saveScore()" style="padding: 6px 16px; font-size: 14px;">登録</button>
         </div>
         <div id="rankingList"></div>
         <div style="display: flex; justify-content: center; margin-top: 10px;">
-            <button class="action-btn" onclick="closeRankingModal()">閉じる</button>
+            <button class="action-btn" onclick="closeRankingModal()" style="padding: 6px 16px; font-size: 14px;">閉じる</button>
         </div>
     </div>
 
@@ -664,7 +668,6 @@
             { x: 1480, y: 225, width: 90, height: 75, type: 3 }
         ];
 
-        // ハリネズミ（当たり判定を少し小さくするため、幅・高さを縮小、座標を微調整）
         let enemies = [
             { x: 500, y: 280, width: 34, height: 20, speed: 2.5 * 0.7, dir: 1, blinkTimer: 0, isBlinking: false, walkTimer: 0 },
             { x: 1200, y: 280, width: 34, height: 20, speed: 3.5 * 0.7, dir: -1, blinkTimer: 0, isBlinking: false, walkTimer: 2 },
@@ -1368,7 +1371,6 @@
                 ctx.stroke();
             } 
             
-            // 最大4本までの描画に調整
             if (woodCount >= 2) {
                 let stackCount = Math.min(3, woodCount - 1); 
                 for (let i = 0; i < stackCount; i++) {
@@ -1821,7 +1823,6 @@
                         wood.collected = false; wood.respawnTimer = 0;
                     }
                 } else {
-                    // 丸太は最大4本までしか持てないように制限
                     if (woodCount < 4 &&
                         beaver.x < wood.x + 40 && beaver.x + beaver.width > wood.x &&
                         beaver.y < wood.y + 22 && beaver.y + beaver.height > wood.y) {
@@ -1881,7 +1882,6 @@
                     enemy.blinkTimer = 0;
                 }
 
-                // ハリネズミの当たり判定（少しマージンを持たせて厳しさを軽減）
                 let margin = 6;
                 if (invincibilityTimer === 0 &&
                     beaver.x + margin < enemy.x + enemy.width && beaver.x + beaver.width - margin > enemy.x &&
@@ -2067,7 +2067,6 @@
                 ctx.restore();
             });
 
-            // 🌟 ペナルティ文字を大きく・見やすく改善（黄色と赤の二重フチ＆サイズ拡大）
             penaltyEffects.forEach(pe => {
                 ctx.save();
                 ctx.globalAlpha = pe.alpha;
@@ -2107,16 +2106,25 @@
                 ctx.restore();
             });
 
-            drawStatusBar(25, 20, 130, 16, hp, maxHp, "HP", "#ff3344");
-            drawStatusBar(25, 55, 130, 16, damProgress, maxDam, "お家完成度", "#33cc44");
+            drawStatusBar(20, 18, 110, 14, hp, maxHp, "HP", "#ff3344");
+            drawStatusBar(20, 48, 110, 14, damProgress, maxDam, "お家完成度", "#33cc44");
 
             ctx.fillStyle = "#000";
-            ctx.font = "bold 15px 'M PLUS Rounded 1c', sans-serif";
+            ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
-            ctx.fillText("所持木材: " + woodCount + " / 4", 175, 70);
+            ctx.fillText("所持木材: " + woodCount + " / 4", 145, 60);
             
+            // 🌟 タイム表示を中央上部に移動＆大きく目立つように描画
             let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
-            ctx.fillText("TIME: " + formatTime(displayTime), 625, 33);
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.font = "bold 28px 'M PLUS Rounded 1c', sans-serif";
+            ctx.fillStyle = "#ffff33";
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 5;
+            ctx.strokeText("TIME: " + formatTime(displayTime), canvas.width / 2, 36);
+            ctx.fillText("TIME: " + formatTime(displayTime), canvas.width / 2, 36);
+            ctx.restore();
 
             if (showStartText) {
                 ctx.save();
