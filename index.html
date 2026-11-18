@@ -214,12 +214,10 @@
         </div>
     </div>
 
-    <!-- 説明文を下段移動の基準に -->
     <div class="info-area">
         <div class="info">
             ✨ 子どもたちが待ってるよ！キラキラ光る場所まで木材を運んで素敵なお家を作ろう！（丸太は最大4本まで）
         </div>
-        <!-- リスタート・ランキングボタンを説明文の下へ移動 -->
         <div class="menu-btns">
             <button class="action-btn" id="restartBtn" onclick="restartGame()">🔄 リスタート</button>
             <button class="action-btn" id="rankingBtn" onclick="openRankingModal(false)">🏆 ランキング</button>
@@ -1817,6 +1815,11 @@
             if (cameraX < 0) cameraX = 0;
             if (cameraX > worldWidth - canvas.width) cameraX = worldWidth - canvas.width;
 
+            // ダム完成に必要な残り丸太数を計算（1ブロック＝10%＝丸太1本）
+            let remainingNeeded = Math.round((maxDam - damProgress) / 10);
+            // 持てる最大数（4本まで、かつダム完成に必要な残り本数を超えない）
+            let maxCarryable = Math.min(4, remainingNeeded);
+
             woods.forEach(wood => {
                 if (wood.collected) {
                     wood.respawnTimer++;
@@ -1824,7 +1827,7 @@
                         wood.collected = false; wood.respawnTimer = 0;
                     }
                 } else {
-                    if (woodCount < 4 &&
+                    if (woodCount < maxCarryable &&
                         beaver.x < wood.x + 40 && beaver.x + beaver.width > wood.x &&
                         beaver.y < wood.y + 22 && beaver.y + beaver.height > wood.y) {
                         wood.collected = true; 
@@ -1891,11 +1894,6 @@
                     invincibilityTimer = 60;
                     penaltyTime += 5000;
                     playDamageSound();
-                    
-                    // 🌟 丸太を持っていたらダメージ時にすべて手元からなくす（放り投げる）仕様
-                    if (woodCount > 0) {
-                        woodCount = 0;
-                    }
 
                     penaltyEffects.push({
                         x: beaver.x + 10,
@@ -2062,7 +2060,6 @@
 
             drawBeaver(beaver);
 
-            // 🌟 HP回復の文字を大きく・フチ付きで見やすく改善
             healEffects.forEach(he => {
                 ctx.save();
                 ctx.globalAlpha = he.alpha;
@@ -2118,10 +2115,13 @@
             drawStatusBar(20, 18, 110, 14, hp, maxHp, "HP", "#ff3344");
             drawStatusBar(20, 48, 110, 14, damProgress, maxDam, "お家完成度", "#33cc44");
 
+            let remainingNeeded = Math.round((maxDam - damProgress) / 10);
+            let maxCarryable = Math.min(4, remainingNeeded);
+
             ctx.fillStyle = "#000";
             ctx.font = "bold 13px 'M PLUS Rounded 1c', sans-serif";
             ctx.textAlign = "left";
-            ctx.fillText("所持木材: " + woodCount + " / 4", 145, 60);
+            ctx.fillText("所持木材: " + woodCount + " / " + maxCarryable, 145, 60);
             
             let displayTime = timerRunning ? (elapsedTime + penaltyTime) : (gameClear ? (elapsedTime + penaltyTime) : 0);
             ctx.save();
