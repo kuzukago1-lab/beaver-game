@@ -269,6 +269,7 @@
         let currentInputSequence = [];
         let nightMode = false;
         let nightModeMsgTimer = 0;
+        let secretClickCount = 0; // 隠しクリックカウンター（10回で発動）
 
         function toggleNightMode() {
             nightMode = !nightMode;
@@ -719,12 +720,19 @@
         setupTouchButton("rightBtn", "ArrowRight");
         setupTouchButton("jumpBtn", "Space");
 
+        // キャンバス上の「所持木材」エリアを10回クリックすると夜景モードが切り替わる設定
         canvas.addEventListener("click", (e) => {
             let rect = canvas.getBoundingClientRect();
             let clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
             let clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            // 左上エリア（所持木材が表示されている周辺：X 140〜260, Y 45〜75）
             if (clickX >= 140 && clickX <= 260 && clickY >= 45 && clickY <= 75) {
-                toggleNightMode();
+                secretClickCount++;
+                initAudio();
+                if (secretClickCount >= 10) {
+                    toggleNightMode();
+                    secretClickCount = 0;
+                }
             }
         });
 
@@ -867,6 +875,7 @@
             carrots = [];
             carrotSpawnTimer = 0;
             clearModalTriggered = false;
+            secretClickCount = 0;
             
             beaver.x = 100;
             beaver.y = 220;
@@ -1701,7 +1710,6 @@
                     beaver.y = 225;
                     beaver.vy = -8.0;
                 }
-                // クリア後は頭が上になるように（回転をスムーズに0へ戻して）姿勢を正す
                 beaver.rotation *= 0.8;
 
                 if (clearTimer === 0) {
