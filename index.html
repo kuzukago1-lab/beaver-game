@@ -344,6 +344,35 @@
             });
         }
 
+        // ランキング名前登録時の詳細ログを Firestore の別コレクション (score_logs) に保存
+        async function saveScoreCloudLog(playerName, timeMs, timeStr, assignedRank) {
+            let now = new Date();
+            let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            let playDurationMs = (startTime > 0 && clearRecordedAt > 0) ? Math.max(0, clearRecordedAt - startTime) : null;
+
+            await db.collection("score_logs").add({
+                eventType: "score_register",
+                playerName: playerName,
+                assignedRank: assignedRank,
+                timeMs: timeMs,
+                timeStr: timeStr,
+                elapsedTimeMs: elapsedTime,
+                penaltyTimeMs: penaltyTime,
+                playDurationMs: playDurationMs,
+                gameClear: gameClear,
+                hp: hp,
+                damProgress: damProgress,
+                woodCount: woodCount,
+                nightMode: nightMode,
+                isTouchDevice: isTouchDevice,
+                language: navigator.language || "",
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                userAgent: navigator.userAgent || "",
+                clientTimeIso: now.toISOString(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
         function updateRankingDisplay(ranking) {
             let listHtml = "";
             if (ranking.length === 0) {
@@ -619,6 +648,7 @@
         let deliverTimer = 0;
 
         let startTime = 0;
+        let clearRecordedAt = 0;
         let elapsedTime = 0;
         let penaltyTime = 0;
         let timerRunning = false;
@@ -834,6 +864,12 @@
                 let ranking = await getCloudRanking();
                 let userRank = ranking.filter(r => r.timeMs < totalScoreMs).length + 1;
 
+                try {
+                    await saveScoreCloudLog(playerName, totalScoreMs, finalTimeString, userRank);
+                } catch (logErr) {
+                    console.error("スコアログ保存エラー:", logErr);
+                }
+
                 clearTimeout(safetyTimer);
                 scoreRegistered = true;
 
@@ -884,6 +920,7 @@
             carrotSpawnTimer = 0;
             clearModalTriggered = false;
             finalTimeString = "";
+            clearRecordedAt = 0;
             secretClickCount = 0;
             
             beaver.x = 100;
@@ -902,6 +939,7 @@
             babyBeavers[2].x = 2050; babyBeavers[2].y = 262; babyBeavers[2].vy = 0;
 
             timerRunning = false;
+            startTime = 0;
             elapsedTime = 0;
             penaltyTime = 0;
             scoreRegistered = false;
@@ -1723,6 +1761,7 @@
 
                 if (clearTimer === 0) {
                     timerRunning = false;
+                    clearRecordedAt = Date.now();
                     finalTimeString = formatTime(elapsedTime + penaltyTime);
                     
                     playVictoryFanfare();
