@@ -327,7 +327,6 @@
             try {
                 let snapshot = await db.collection("rankings")
                     .orderBy("timeMs", "asc")
-                    .limit(50)
                     .get();
                 let ranking = [];
                 snapshot.forEach(doc => {
